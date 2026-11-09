@@ -45,7 +45,10 @@ import json
 
 from genlayer import *
 
-TIME_URL = "https://worldtimeapi.org/api/timezone/Etc/UTC"
+TIME_URLS = (
+    "https://timeapi.io/api/time/current/zone?timeZone=UTC",
+    "https://worldtimeapi.org/api/timezone/Etc/UTC",
+)
 MAX_EVIDENCE_AGE_DAYS = 90
 MIN_TRADES = 5
 MAX_TRADE_PNL_BPS = 5000
@@ -237,15 +240,56 @@ class CopyTrade(gl.Contract):
                 raise gl.vm.UserError(f"EXTERNAL: {label}_not_an_object")
             return data
 
+        def _fetch_json_or_none(url: str):
+            try:
+                response = gl.nondet.web.get(url)
+            except Exception:
+                return None
+            if getattr(response, "status", 200) != 200:
+                return None
+            body = response.body
+            if isinstance(body, bytes):
+                text = body.decode("utf-8")
+            else:
+                text = str(body)
+            try:
+                data = json.loads(text)
+            except Exception:
+                return None
+            if not isinstance(data, dict):
+                return None
+            return data
+
+        def _fetch_audit_date() -> str:
+            # Current UTC date from a public time source. timeapi.io is
+            # tried first, worldtimeapi.org second; the first source
+            # that answers wins. Leader and validators run the same
+            # order, and the exact-match rule rejects any disagreement
+            # on the resulting date, so a source outage can only leave
+            # the audit pending, never store a wrong date.
+            for url in TIME_URLS:
+                data = _fetch_json_or_none(url)
+                if data is None:
+                    continue
+                if "timeapi.io" in url:
+                    year = data.get("year")
+                    month = data.get("month")
+                    day = data.get("day")
+                    if not _is_int(year) or not _is_int(month) or not _is_int(day):
+                        continue
+                    candidate = f"{year:04d}-{month:02d}-{day:02d}"
+                else:
+                    raw = data.get("datetime")
+                    if not isinstance(raw, str) or len(raw) < 10:
+                        continue
+                    candidate = raw[0:10]
+                if _parse_date(candidate) is not None:
+                    return candidate
+            raise gl.vm.UserError("EXTERNAL: time_fetch_failed")
+
         def evaluate() -> dict:
             evidence = _fetch_json(evidence_ref, "evidence")
-            time_data = _fetch_json(TIME_URL, "time")
-            raw_today = time_data.get("datetime")
-            if not isinstance(raw_today, str) or len(raw_today) < 10:
-                raise gl.vm.UserError("EXTERNAL: time_missing_datetime")
-            audit_date = raw_today[0:10]
-            if _parse_date(audit_date) is None:
-                raise gl.vm.UserError("EXTERNAL: time_bad_date")
+            audit_date = _fetch_audit_date()
 
             checks = {
                 "source_valid": False,

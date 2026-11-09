@@ -118,7 +118,8 @@ in 0..10000. Dates are `YYYY-MM-DD`.
 ## Audit checks (deterministic, no scores, no LLM)
 
 The nondet function fetches the evidence URL and the current UTC
-date from `https://worldtimeapi.org/api/timezone/Etc/UTC`, then
+date (timeapi.io first, worldtimeapi.org as fallback — the first
+source that answers wins; see the contract), then
 computes five binary checks in pure Python. There are no numeric
 scores and no tolerance bands anywhere in the audit path.
 
