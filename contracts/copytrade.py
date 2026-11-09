@@ -1,44 +1,72 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
-"""CopyTrade: people-centred social copy-trading on GenLayer.
+"""CopyTrade: people-centred social copy-trading on GenLayer, real GEN.
 
 A trader publishes a track record as JSON at a public URL. Validators
 independently fetch that record and audit it: is the source valid,
 does it match the registered trader identity, are the dates
 consistent, do the claimed numbers recompute exactly, and is the
 record fresh? The audit returns VERIFIED / SUSPECT / REJECTED, and
-the verdict sets the copy weight (1.0x / 0.5x / 0x). Copying moves
-simulated mGEN on an in-contract ledger only. There is no real
-trading, no real GEN custody, and no exchange execution.
+the verdict sets the copy weight (1.0x / 0.5x / 0x).
+
+Real GEN, no ledger money
+-------------------------
+Copying stakes real testnet GEN: copy_trader is payable and takes
+exactly 5 GEN (5 * 10^18 wei). The stake is locked in the contract
+until the copy settles or is cancelled. Settlement fetches the live
+BTC price (CoinDesk first, CoinGecko fallback), buckets it to whole
+$100, and pays principal plus PnL on the weighted exposure back as a
+withdrawable credit: pull payment via withdraw_payout, credit zeroed
+before the transfer. A challenge stakes exactly 2 GEN: it is
+forfeited into the house pool when the challenge fails, and refunded
+plus a 0.75 GEN reward (drawn from the house pool) when it succeeds.
+The house pool is capitalised only by forfeited challenge stakes and
+by stakes retained from losing settlements; it never mints GEN.
+Settlement upside above a copy's own stake is paid from the pool and
+capped by the pool balance, so the contract can never promise GEN it
+does not hold.
+
+Invariant (checked by get_totals):
+  total_received == total_paid_out + locked_copies
+                   + locked_challenges + credits_total + house_pool
+and contract balance == total_received - total_paid_out.
 
 Consensus design (the part that matters)
 ----------------------------------------
-* There are no scores and no tolerance bands in the audit path. The
-  nondet function computes five binary checks in pure Python from
-  the fetched record, and the verdict is a deterministic table over
-  those checks. A validator accepts the leader result only if every
-  field — verdict, all five checks, evidence end date, audit date,
-  recomputed win rate and recomputed total return — is EXACTLY equal
-  to its own independent recomputation, and the leader's verdict
+* Audit: no scores, no tolerance bands. The nondet function computes
+  five binary checks in pure Python from the fetched record, and the
+  verdict is a deterministic table over those checks. A validator
+  accepts the leader result only if all 11 result fields are EXACTLY
+  equal to its own independent recomputation, and the leader's verdict
   equals the table verdict for its own checks. Two different
-  validator-compatible leader outputs cannot exist: any difference
-  in any field fails validation and nothing is stored. The maximum
-  spread between two passing leader outputs on every stored core
-  value is zero. See docs/mechanism.md for the worst-case table.
+  validator-compatible leader outputs cannot exist: any difference in
+  any field fails validation and nothing is stored. Maximum spread on
+  every stored core value is zero. See docs/mechanism.md.
+* Settlement: the nondet function fetches the live BTC price, buckets
+  it to $100, and computes 11 result fields with exact integer
+  arithmetic (truncation toward zero, no rounding). A validator
+  accepts only if all 11 fields equal its own recomputation. Prices
+  are bucketed because a live price moves between the leader's fetch
+  and a validator's fetch: agreeing on the $100 bucket (not the exact
+  cents) is what makes consensus reachable at all, and a bucket
+  boundary crossing fails validation instead of storing a mixed
+  value, so settlement is retried, never half-stored.
 * Numbers are exact integers. Win rate and total return must
-  recompute to the claimed values with integer equality — a claim
-  off by 1 basis point fails the numbers check. Settlement divides
-  exactly by construction (allocation is a multiple of 100,
-  pnl_bps a multiple of 100), so there is no rounding anywhere.
+  recompute to the claimed values with integer equality. Settlement
+  divides with truncation toward zero and every division is
+  documented in docs/mechanism.md.
 * Staleness is checked, not ignored: the audit date is the current
   UTC date fetched from a public time source by leader and
   validators alike, and a record older than 90 days can never be
   VERIFIED. If leader and validators fetch different dates (a
   midnight crossing), validation fails and the audit stays pending.
-* A failed audit writes nothing. A FINALIZED verdict is immutable:
-  a later audit that disagrees is kept as a witness, the standing
-  verdict never changes.
-* A challenge forces a second evaluation before finalisation. The
+* A failed audit or a failed price fetch writes nothing. A CLOSED
+  audit verdict is immutable: a later audit that disagrees is kept
+  as a witness, the standing verdict never changes.
+* A challenge forces a second evaluation before closing. The
   challenge succeeds iff the second verdict differs from the first.
+* SUSPECT copies settle at 0.5x like VERIFIED copies at 1.0x, and
+  any OPEN copy can be cancelled before settlement for a full refund
+  of the 5 GEN stake as credit.
 """
 
 import json
@@ -49,11 +77,18 @@ TIME_URLS = (
     "https://timeapi.io/api/time/current/zone?timeZone=UTC",
     "https://worldtimeapi.org/api/timezone/Etc/UTC",
 )
+PRICE_SOURCES = (
+    "https://api.coindesk.com/v1/bpi/currentprice/USD.json",
+    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+)
 MAX_EVIDENCE_AGE_DAYS = 90
 MIN_TRADES = 5
 MAX_TRADE_PNL_BPS = 5000
-DEMO_FUNDS = 10000
-REPUTATION_START = 100
+STAKE_WEI = 5000000000000000000
+CHALLENGE_WEI = 2000000000000000000
+CHALLENGE_REWARD_WEI = 750000000000000000
+PRICE_BUCKET_USD = 100
+REPUTATION_START = 0
 REPUTATION_CAP = 200
 
 
@@ -139,6 +174,86 @@ def _clamp_reputation(value: int) -> int:
     return value
 
 
+def _trunc_div(a: int, b: int) -> int:
+    """Integer division truncated toward zero (b > 0). No rounding up,
+    no floor surprises on negatives: -15001 // 10000 is -1, not -2."""
+    if b <= 0:
+        raise ValueError("divisor must be positive")
+    q = abs(a) // b
+    return q if a >= 0 else -q
+
+
+def _to_int_dollars(value) -> int:
+    """Convert a JSON price (int, float, or formatted string) to whole
+    dollars. Floats are truncated, never returned: no float ever
+    reaches GenVM calldata."""
+    if isinstance(value, bool):
+        raise ValueError("not a price")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip().replace(",", "")
+        if "." in text:
+            text = text.split(".")[0]
+        text = text.strip()
+        if text == "" or text == "-":
+            raise ValueError("not a price")
+        return int(text)
+    raise ValueError("not a price")
+
+
+def _bucket_usd(price_usd: int) -> int:
+    return (price_usd // PRICE_BUCKET_USD) * PRICE_BUCKET_USD
+
+
+def _settle_math(entry_bucket_usd: int, exit_bucket_usd: int, effective_wei: int, stake_wei: int, pool_before_wei: int) -> dict:
+    """Pure settlement arithmetic. Returns exactly the 11 fields the
+    consensus validation compares. No state is read or written here,
+    so local tests can check every branch against these numbers.
+    """
+    pnl_bps = _trunc_div((exit_bucket_usd - entry_bucket_usd) * 10000, entry_bucket_usd)
+    pnl_wei = _trunc_div(effective_wei * pnl_bps, 10000)
+    raw_return_wei = stake_wei + pnl_wei
+    if raw_return_wei <= 0:
+        return_wei = 0
+        paid_upside_wei = 0
+        capped = raw_return_wei < 0
+    elif raw_return_wei <= stake_wei:
+        return_wei = raw_return_wei
+        paid_upside_wei = 0
+        capped = False
+    else:
+        upside_wei = raw_return_wei - stake_wei
+        paid_upside_wei = upside_wei if upside_wei <= pool_before_wei else pool_before_wei
+        return_wei = stake_wei + paid_upside_wei
+        capped = paid_upside_wei < upside_wei
+    pool_after_wei = pool_before_wei + stake_wei - return_wei
+    return {
+        "entry_bucket_usd": entry_bucket_usd,
+        "exit_bucket_usd": exit_bucket_usd,
+        "pnl_bps": pnl_bps,
+        "pnl_wei": pnl_wei,
+        "return_wei": return_wei,
+        "paid_upside_wei": paid_upside_wei,
+        "pool_before_wei": pool_before_wei,
+        "pool_after_wei": pool_after_wei,
+        "effective_wei": effective_wei,
+        "stake_wei": stake_wei,
+        "capped": capped,
+    }
+
+
+@gl.evm.contract_interface
+class _Recipient:
+    class View:
+        pass
+
+    class Write:
+        pass
+
+
 class CopyTrade(gl.Contract):
     traders: TreeMap[str, str]
     trader_ids: DynArray[str]
@@ -146,19 +261,31 @@ class CopyTrade(gl.Contract):
     audit_ids: DynArray[str]
     copies: TreeMap[str, str]
     copy_ids: DynArray[str]
-    accounts: TreeMap[str, str]
+    credits: TreeMap[str, u256]
     witnesses: TreeMap[str, str]
     witness_ids: DynArray[str]
     next_trader: u256
     next_audit: u256
     next_copy: u256
     next_witness: u256
+    total_received: u256
+    total_paid_out: u256
+    locked_copies: u256
+    locked_challenges: u256
+    credits_total: u256
+    house_pool: u256
 
     def __init__(self):
         self.next_trader = u256(0)
         self.next_audit = u256(0)
         self.next_copy = u256(0)
         self.next_witness = u256(0)
+        self.total_received = u256(0)
+        self.total_paid_out = u256(0)
+        self.locked_copies = u256(0)
+        self.locked_challenges = u256(0)
+        self.credits_total = u256(0)
+        self.house_pool = u256(0)
 
     # -- deterministic helpers -------------------------------------------
 
@@ -192,30 +319,119 @@ class CopyTrade(gl.Contract):
     def _save_copy(self, copy: dict) -> None:
         self.copies[copy["id"]] = json.dumps(copy)
 
-    def _ensure_account(self, address: str) -> dict:
-        raw = self.accounts.get(address, "")
-        if raw == "":
-            account = {
-                "address": address,
-                "balance": 0,
-                "claimed_demo": False,
-                "reputation": REPUTATION_START,
+    def _credit(self, address: str, amount_wei: int) -> None:
+        prev = int(self.credits[address]) if address in self.credits else 0
+        self.credits[address] = u256(prev + amount_wei)
+        self.credits_total = u256(int(self.credits_total) + amount_wei)
+
+    def _apply_trader_verdict(self, trader: dict, verdict: str) -> None:
+        """First finalised verdict sets the trader record; a later
+        different verdict is kept as a witness instead."""
+        if trader["verdict"] is None:
+            trader["verdict"] = verdict
+            trader["weight"] = _weight_for_verdict(verdict)
+            trader["status"] = "AUDITED_" + verdict
+            if verdict == "VERIFIED":
+                trader["reputation"] = _clamp_reputation(trader["reputation"] + 10)
+            elif verdict == "REJECTED":
+                trader["reputation"] = _clamp_reputation(trader["reputation"] - 10)
+            self._save_trader(trader)
+        elif trader["verdict"] != verdict:
+            witness_id = "w" + str(int(self.next_witness))
+            self.next_witness = self.next_witness + u256(1)
+            witness = {
+                "id": witness_id,
+                "trader_id": trader["id"],
+                "standing_verdict": trader["verdict"],
+                "new_verdict": verdict,
             }
-            self.accounts[address] = json.dumps(account)
-            return account
-        return json.loads(raw)
+            self.witnesses[witness_id] = json.dumps(witness)
+            self.witness_ids.append(witness_id)
+            trader["witness_count"] = trader["witness_count"] + 1
+            self._save_trader(trader)
 
-    def _save_account(self, account: dict) -> None:
-        self.accounts[account["address"]] = json.dumps(account)
+    # -- price fetch (plain helper; only called inside a nondet
+    # evaluate closure, never as its own run_nondet_unsafe, so the
+    # settlement evaluate can fetch a price and compute its 11
+    # fields in one nondet call without nesting) --------------------
 
-    def _adjust_trader_reputation(self, trader: dict, delta: int) -> None:
-        trader["reputation"] = _clamp_reputation(trader["reputation"] + delta)
+    def _fetch_price(self) -> int:
+        """Fetch live BTC/USD from CoinDesk first, CoinGecko second,
+        and return the $100 bucket. Raises UserError if every source
+        fails. The bucket -- never the exact price, never the source
+        -- is what validators agree on."""
 
-    # -- audit evaluation (nondet, shared by audit + finalize) ----------
+        def _fetch_one(url: str):
+            try:
+                response = gl.nondet.web.get(url)
+            except Exception:
+                return None
+            if getattr(response, "status", 200) != 200:
+                return None
+            body = response.body
+            if isinstance(body, bytes):
+                text = body.decode("utf-8")
+            else:
+                text = str(body)
+            try:
+                data = json.loads(text)
+            except Exception:
+                return None
+            if not isinstance(data, dict):
+                return None
+            try:
+                if "coindesk" in url:
+                    raw = data["bpi"]["USD"]["rate"]
+                else:
+                    raw = data["bitcoin"]["usd"]
+                price = _to_int_dollars(raw)
+            except Exception:
+                return None
+            if price <= 0:
+                return None
+            return _bucket_usd(price)
+
+        for url in PRICE_SOURCES:
+            bucket = _fetch_one(url)
+            if bucket is not None:
+                return bucket
+        raise gl.vm.UserError("EXTERNAL: price_sources_unavailable")
+
+    def _fetch_price_bucket(self):
+        """Nondet price fetch for copy_trader: validators agree on
+        the $100 bucket only."""
+
+        def evaluate() -> dict:
+            return {"bucket_usd": self._fetch_price()}
+
+        def validate(leader_result) -> bool:
+            if isinstance(leader_result, gl.vm.UserError):
+                try:
+                    evaluate()
+                except gl.vm.UserError:
+                    return True
+                except Exception:
+                    return False
+                return False
+            if not isinstance(leader_result, gl.vm.Return):
+                return False
+            leader = leader_result.calldata
+            if not isinstance(leader, dict):
+                return False
+            try:
+                own = evaluate()
+            except Exception:
+                return False
+            return leader.get("bucket_usd") == own.get("bucket_usd")
+
+        return gl.vm.run_nondet_unsafe(evaluate, validate)
+
+    # -- audit evaluation (nondet) ----------------------------------------
 
     def _evaluate(self, trader: dict):
         """Fetch the evidence record + current UTC date and compute the
-        audit result. Runs for the leader and for every validator."""
+        audit result: exactly 11 fields, all validated exactly. Runs
+        for the leader and for every validator."""
         evidence_ref = trader["evidence_ref"]
         trader_code = trader["trader_code"]
         name = trader["name"]
@@ -261,12 +477,6 @@ class CopyTrade(gl.Contract):
             return data
 
         def _fetch_audit_date() -> str:
-            # Current UTC date from a public time source. timeapi.io is
-            # tried first, worldtimeapi.org second; the first source
-            # that answers wins. Leader and validators run the same
-            # order, and the exact-match rule rejects any disagreement
-            # on the resulting date, so a source outage can only leave
-            # the audit pending, never store a wrong date.
             for url in TIME_URLS:
                 data = _fetch_json_or_none(url)
                 if data is None:
@@ -302,7 +512,6 @@ class CopyTrade(gl.Contract):
             wins = 0
             total = 0
 
-            # (1) source_valid: required fields, right shapes.
             required = ("trader_code", "trader_name", "window_start", "window_end", "claimed_win_rate_bps", "claimed_total_return_bps", "trades")
             shape_ok = True
             for field in required:
@@ -328,11 +537,9 @@ class CopyTrade(gl.Contract):
             checks["source_valid"] = True
             window_end = evidence["window_end"]
 
-            # (2) identity_matches: exact string equality.
             if evidence["trader_code"] == trader_code and evidence["trader_name"] == name:
                 checks["identity_matches"] = True
 
-            # (3) dates_consistent + (4) numbers_consistent.
             trades = evidence["trades"]
             dates_ok = True
             numbers_ok = True
@@ -387,7 +594,6 @@ class CopyTrade(gl.Contract):
             checks["dates_consistent"] = dates_ok
             checks["numbers_consistent"] = numbers_ok
 
-            # (5) evidence_fresh: age in whole days, 0..90.
             age = _date_diff_days(audit_date, window_end)
             if age is not None and 0 <= age <= MAX_EVIDENCE_AGE_DAYS:
                 checks["evidence_fresh"] = True
@@ -405,8 +611,6 @@ class CopyTrade(gl.Contract):
                 "wins": wins,
                 "trade_count": len(trades),
                 "total_return_bps": total,
-                "evidence_ref": evidence_ref,
-                "trader_code": trader_code,
             }
 
         def validate(leader_result) -> bool:
@@ -427,15 +631,12 @@ class CopyTrade(gl.Contract):
                 own = evaluate()
             except Exception:
                 return False
-            # Exact match on every field. No tolerance anywhere.
-            for field in ("verdict", "evidence_end_date", "audit_date", "wins", "trade_count", "total_return_bps", "evidence_ref", "trader_code"):
+            for field in ("verdict", "evidence_end_date", "audit_date", "wins", "trade_count", "total_return_bps"):
                 if leader.get(field) != own.get(field):
                     return False
             for key in ("check_source_valid", "check_identity_matches", "check_dates_consistent", "check_numbers_consistent", "check_evidence_fresh"):
                 if leader.get(key) != own.get(key):
                     return False
-            # The leader's verdict must equal the table verdict for its
-            # own checks; a verdict that contradicts its checks is out.
             leader_checks = {
                 "source_valid": leader.get("check_source_valid"),
                 "identity_matches": leader.get("check_identity_matches"),
@@ -465,7 +666,6 @@ class CopyTrade(gl.Contract):
         if not evidence_ref.startswith("https://"):
             raise gl.vm.UserError("EXPECTED: evidence_ref_must_be_https")
         sender = self._sender()
-        self._ensure_account(sender)
         trader_id = "t" + str(int(self.next_trader))
         self.next_trader = self.next_trader + u256(1)
         trader = {
@@ -479,7 +679,8 @@ class CopyTrade(gl.Contract):
             "weight": 0,
             "reputation": REPUTATION_START,
             "followers": 0,
-            "total_copied": 0,
+            "open_copies": 0,
+            "total_copied_wei": 0,
             "settled_copies": 0,
             "witness_count": 0,
         }
@@ -491,7 +692,6 @@ class CopyTrade(gl.Contract):
     def audit_trader(self, trader_id: str) -> str:
         trader = self._load_trader(trader_id)
         sender = self._sender()
-        self._ensure_account(sender)
         result = self._evaluate(trader)
         audit_id = "a" + str(int(self.next_audit))
         self.next_audit = self.next_audit + u256(1)
@@ -499,168 +699,198 @@ class CopyTrade(gl.Contract):
             "id": audit_id,
             "trader_id": trader_id,
             "requester": sender,
-            "status": "EVALUATING",
+            "status": "PENDING",
             "round1": result,
             "round2": None,
             "challenger": None,
             "challenge_reason": None,
             "challenge_outcome": None,
+            "challenge_stake_wei": 0,
         }
         self.audits[audit_id] = json.dumps(audit)
         self.audit_ids.append(audit_id)
         return audit_id
 
-    @gl.public.write
+    @gl.public.write.payable
     def challenge_audit(self, audit_id: str, reason: str) -> str:
+        v = gl.message.value
+        if v != u256(CHALLENGE_WEI):
+            raise gl.vm.UserError("EXPECTED: challenge_stake_must_be_2_gen")
         audit = self._load_audit(audit_id)
-        if audit["status"] != "EVALUATING":
+        if audit["status"] != "PENDING":
             raise gl.vm.UserError("EXPECTED: audit_not_challengeable")
         if not isinstance(reason, str) or len(reason) < 1 or len(reason) > 200:
             raise gl.vm.UserError("EXPECTED: reason_must_be_1_to_200_chars")
         sender = self._sender()
         if sender == audit["requester"]:
             raise gl.vm.UserError("EXPECTED: requester_cannot_challenge_own_audit")
-        self._ensure_account(sender)
+        self.total_received = u256(int(self.total_received) + int(v))
+        self.locked_challenges = u256(int(self.locked_challenges) + int(v))
         audit["status"] = "CHALLENGED"
         audit["challenger"] = sender
         audit["challenge_reason"] = reason
+        audit["challenge_stake_wei"] = int(v)
         self._save_audit(audit)
         return audit_id
 
     @gl.public.write
     def finalize_audit(self, audit_id: str) -> str:
         audit = self._load_audit(audit_id)
-        if audit["status"] not in ("EVALUATING", "CHALLENGED"):
-            raise gl.vm.UserError("EXPECTED: audit_already_finalized")
+        if audit["status"] not in ("PENDING", "CHALLENGED"):
+            raise gl.vm.UserError("EXPECTED: audit_already_closed")
         trader = self._load_trader(audit["trader_id"])
-        sender = self._sender()
-        self._ensure_account(sender)
         if audit["status"] == "CHALLENGED":
             result2 = self._evaluate(trader)
             audit["round2"] = result2
             verdict = result2["verdict"]
+            stake = int(audit["challenge_stake_wei"])
+            self.locked_challenges = u256(int(self.locked_challenges) - stake)
             if verdict == audit["round1"]["verdict"]:
                 audit["challenge_outcome"] = "CHALLENGE_FAILED"
-                challenger = self._ensure_account(audit["challenger"])
-                challenger["reputation"] = _clamp_reputation(challenger["reputation"] - 5)
-                self._save_account(challenger)
+                self.house_pool = u256(int(self.house_pool) + stake)
             else:
                 audit["challenge_outcome"] = "CHALLENGE_SUCCEEDED"
-                challenger = self._ensure_account(audit["challenger"])
-                challenger["reputation"] = _clamp_reputation(challenger["reputation"] + 5)
-                self._save_account(challenger)
+                reward = CHALLENGE_REWARD_WEI if int(self.house_pool) >= CHALLENGE_REWARD_WEI else int(self.house_pool)
+                self.house_pool = u256(int(self.house_pool) - reward)
+                self._credit(audit["challenger"], stake + reward)
         else:
             verdict = audit["round1"]["verdict"]
-        audit["status"] = "FINALIZED"
+        audit["status"] = "CLOSED"
         self._save_audit(audit)
-        if trader["verdict"] is None:
-            trader["verdict"] = verdict
-            trader["weight"] = _weight_for_verdict(verdict)
-            trader["status"] = "AUDITED_" + verdict
-            if verdict == "VERIFIED":
-                self._adjust_trader_reputation(trader, 10)
-            elif verdict == "REJECTED":
-                self._adjust_trader_reputation(trader, -10)
-            self._save_trader(trader)
-        elif trader["verdict"] != verdict:
-            witness_id = "w" + str(int(self.next_witness))
-            self.next_witness = self.next_witness + u256(1)
-            witness = {
-                "id": witness_id,
-                "trader_id": trader["id"],
-                "audit_id": audit_id,
-                "standing_verdict": trader["verdict"],
-                "new_verdict": verdict,
-                "evidence_end_date": audit["round2"]["evidence_end_date"] if audit["round2"] is not None else audit["round1"]["evidence_end_date"],
-                "audit_date": audit["round2"]["audit_date"] if audit["round2"] is not None else audit["round1"]["audit_date"],
-            }
-            self.witnesses[witness_id] = json.dumps(witness)
-            self.witness_ids.append(witness_id)
-            trader["witness_count"] = trader["witness_count"] + 1
-            self._save_trader(trader)
+        self._apply_trader_verdict(trader, verdict)
         return audit_id
 
-    @gl.public.write
-    def claim_demo_funds(self) -> str:
-        sender = self._sender()
-        account = self._ensure_account(sender)
-        if account["claimed_demo"]:
-            raise gl.vm.UserError("EXPECTED: demo_funds_already_claimed")
-        account["balance"] = account["balance"] + DEMO_FUNDS
-        account["claimed_demo"] = True
-        self._save_account(account)
-        return json.dumps(account)
-
-    @gl.public.write
-    def follow_trader(self, trader_id: str, allocation: u256) -> str:
-        allocation = int(allocation)
-        if allocation <= 0 or allocation % 100 != 0:
-            raise gl.vm.UserError("EXPECTED: allocation_must_be_positive_multiple_of_100")
+    @gl.public.write.payable
+    def copy_trader(self, trader_id: str) -> str:
+        v = gl.message.value
+        if v != u256(STAKE_WEI):
+            raise gl.vm.UserError("EXPECTED: copy_stake_must_be_5_gen")
         trader = self._load_trader(trader_id)
         if trader["verdict"] is None:
             raise gl.vm.UserError("EXPECTED: trader_not_audited_yet")
         weight = trader["weight"]
         if weight <= 0:
-            raise gl.vm.UserError("EXPECTED: rejected_trader_cannot_be_followed")
+            raise gl.vm.UserError("EXPECTED: rejected_trader_cannot_be_copied")
         sender = self._sender()
-        account = self._ensure_account(sender)
-        if account["balance"] < allocation:
-            raise gl.vm.UserError("EXPECTED: insufficient_demo_balance")
-        effective = allocation * weight // 100
-        account["balance"] = account["balance"] - allocation
-        self._save_account(account)
+        price = self._fetch_price_bucket()
+        entry_bucket = int(price["bucket_usd"])
+        stake = int(v)
+        effective = stake * weight // 100
+        self.total_received = u256(int(self.total_received) + stake)
+        self.locked_copies = u256(int(self.locked_copies) + stake)
         copy_id = "c" + str(int(self.next_copy))
         self.next_copy = self.next_copy + u256(1)
         copy = {
             "id": copy_id,
             "follower": sender,
             "trader_id": trader_id,
-            "allocation": allocation,
+            "stake_wei": stake,
             "weight": weight,
-            "effective": effective,
+            "effective_wei": effective,
+            "entry_bucket_usd": entry_bucket,
             "status": "OPEN",
+            "exit_bucket_usd": None,
             "pnl_bps": None,
-            "pnl": None,
-            "settled_value": None,
+            "pnl_wei": None,
+            "return_wei": None,
+            "capped": None,
         }
         self.copies[copy_id] = json.dumps(copy)
         self.copy_ids.append(copy_id)
         trader["followers"] = trader["followers"] + 1
-        trader["total_copied"] = trader["total_copied"] + effective
+        trader["open_copies"] = trader["open_copies"] + 1
+        trader["total_copied_wei"] = trader["total_copied_wei"] + effective
         self._save_trader(trader)
         return copy_id
 
     @gl.public.write
-    def settle_copy(self, copy_id: str, pnl_bps: i256) -> str:
-        pnl_bps = int(pnl_bps)
-        if pnl_bps < -10000 or pnl_bps > 10000 or pnl_bps % 100 != 0:
-            raise gl.vm.UserError("EXPECTED: pnl_bps_must_be_multiple_of_100_in_range")
+    def settle_copy(self, copy_id: str) -> str:
         copy = self._load_copy(copy_id)
         if copy["status"] != "OPEN":
-            raise gl.vm.UserError("EXPECTED: copy_already_settled")
+            raise gl.vm.UserError("EXPECTED: copy_not_open")
         sender = self._sender()
         if sender != copy["follower"]:
             raise gl.vm.UserError("EXPECTED: only_copy_owner_can_settle")
-        trader = self._load_trader(copy["trader_id"])
-        if trader["verdict"] != "VERIFIED":
-            raise gl.vm.UserError("EXPECTED: only_verified_trader_copies_settle")
-        effective = copy["effective"]
-        pnl = effective * pnl_bps // 10000
-        account = self._ensure_account(sender)
-        account["balance"] = account["balance"] + effective + pnl
-        self._save_account(account)
+        entry_bucket = int(copy["entry_bucket_usd"])
+        effective = int(copy["effective_wei"])
+        stake = int(copy["stake_wei"])
+        pool_before = int(self.house_pool)
+
+        def evaluate() -> dict:
+            exit_bucket = self._fetch_price()
+            return _settle_math(entry_bucket, exit_bucket, effective, stake, pool_before)
+
+        def validate(leader_result) -> bool:
+            if isinstance(leader_result, gl.vm.UserError):
+                try:
+                    evaluate()
+                except gl.vm.UserError:
+                    return True
+                except Exception:
+                    return False
+                return False
+            if not isinstance(leader_result, gl.vm.Return):
+                return False
+            leader = leader_result.calldata
+            if not isinstance(leader, dict):
+                return False
+            try:
+                own = evaluate()
+            except Exception:
+                return False
+            for field in ("entry_bucket_usd", "exit_bucket_usd", "pnl_bps", "pnl_wei", "return_wei", "paid_upside_wei", "pool_before_wei", "pool_after_wei", "effective_wei", "stake_wei", "capped"):
+                if leader.get(field) != own.get(field):
+                    return False
+            return True
+
+        result = gl.vm.run_nondet_unsafe(evaluate, validate)
         copy["status"] = "SETTLED"
-        copy["pnl_bps"] = pnl_bps
-        copy["pnl"] = pnl
-        copy["settled_value"] = effective + pnl
+        copy["exit_bucket_usd"] = result["exit_bucket_usd"]
+        copy["pnl_bps"] = result["pnl_bps"]
+        copy["pnl_wei"] = result["pnl_wei"]
+        copy["return_wei"] = result["return_wei"]
+        copy["capped"] = result["capped"]
         self._save_copy(copy)
-        if pnl > 0:
-            self._adjust_trader_reputation(trader, 1)
-        elif pnl < 0:
-            self._adjust_trader_reputation(trader, -1)
+        self.locked_copies = u256(int(self.locked_copies) - stake)
+        self.house_pool = u256(int(result["pool_after_wei"]))
+        if int(result["return_wei"]) > 0:
+            self._credit(sender, int(result["return_wei"]))
+        trader = self._load_trader(copy["trader_id"])
+        trader["open_copies"] = trader["open_copies"] - 1
         trader["settled_copies"] = trader["settled_copies"] + 1
         self._save_trader(trader)
         return copy_id
+
+    @gl.public.write
+    def cancel_copy(self, copy_id: str) -> str:
+        copy = self._load_copy(copy_id)
+        if copy["status"] != "OPEN":
+            raise gl.vm.UserError("EXPECTED: copy_not_open")
+        sender = self._sender()
+        if sender != copy["follower"]:
+            raise gl.vm.UserError("EXPECTED: only_copy_owner_can_cancel")
+        stake = int(copy["stake_wei"])
+        copy["status"] = "CANCELLED"
+        copy["return_wei"] = stake
+        self._save_copy(copy)
+        self.locked_copies = u256(int(self.locked_copies) - stake)
+        self._credit(sender, stake)
+        trader = self._load_trader(copy["trader_id"])
+        trader["open_copies"] = trader["open_copies"] - 1
+        self._save_trader(trader)
+        return copy_id
+
+    @gl.public.write
+    def withdraw_payout(self) -> str:
+        sender = self._sender()
+        amount = int(self.credits[sender]) if sender in self.credits else 0
+        if amount == 0:
+            raise gl.vm.UserError("EXPECTED: no_credit")
+        self.credits[sender] = u256(0)
+        self.credits_total = u256(int(self.credits_total) - amount)
+        self.total_paid_out = u256(int(self.total_paid_out) + amount)
+        _Recipient(Address(sender)).emit_transfer(value=u256(amount))
+        return json.dumps({"sender": sender, "withdrawn_wei": amount, "total_paid_out_wei": int(self.total_paid_out)})
 
     # -- views -------------------------------------------------------------
 
@@ -677,11 +907,27 @@ class CopyTrade(gl.Contract):
         return json.dumps(self._load_copy(copy_id))
 
     @gl.public.view
-    def get_account(self, address: str) -> str:
-        raw = self.accounts.get(address, "")
-        if raw == "":
-            return json.dumps({"address": address, "balance": 0, "claimed_demo": False, "reputation": REPUTATION_START})
-        return raw
+    def get_credit(self, addr: str) -> u256:
+        if addr in self.credits:
+            return self.credits[addr]
+        return u256(0)
+
+    @gl.public.view
+    def get_totals(self) -> str:
+        total_in = int(self.total_received)
+        accounted = int(self.total_paid_out) + int(self.locked_copies) + int(self.locked_challenges) + int(self.credits_total) + int(self.house_pool)
+        return json.dumps({
+            "total_received_wei": total_in,
+            "total_paid_out_wei": int(self.total_paid_out),
+            "contract_balance_wei": int(self.balance),
+            "locked_copies_wei": int(self.locked_copies),
+            "locked_challenges_wei": int(self.locked_challenges),
+            "credits_total_wei": int(self.credits_total),
+            "house_pool_wei": int(self.house_pool),
+            "accounted_wei": accounted,
+            "invariant_ok": total_in == accounted,
+            "balance_matches_wei": int(self.balance) == total_in - int(self.total_paid_out),
+        })
 
     @gl.public.view
     def get_counts(self) -> str:

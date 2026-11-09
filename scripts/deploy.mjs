@@ -1,13 +1,15 @@
 /* Deploy CopyTrade to Stable Studionet (chain 61999) only.
  *
  * Usage:
- *   GENLAYER_PRIVATE_KEY=0x... node scripts/deploy.mjs
- *   # or, for a throwaway test deployer (Studionet is gasless, 0 GEN):
  *   node scripts/deploy.mjs
  *
- * The private key is NEVER written to disk or to deployment.json. If no
- * key is supplied, an ephemeral key is generated for this run only; the
- * contract is permissionless, so losing that key loses nothing.
+ * An ephemeral deployer key is generated for this run only; the key
+ * is NEVER written to disk or to deployment.json. The contract is
+ * permissionless, so losing that key loses nothing.
+ *
+ * After FINALIZED, the deployed code is read back with
+ * gen_getContractCode (base64), decoded, and SHA-256-compared with
+ * the repo source file byte for byte. A mismatch aborts the deploy.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -20,14 +22,11 @@ import { TransactionStatus } from "genlayer-js/types";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const codePath = path.join(root, "contracts", "copytrade.py");
 const code = readFileSync(codePath, "utf-8");
+const codeSha = createHash("sha256").update(code).digest("hex");
+console.log("Source SHA-256:", codeSha);
 
-const suppliedKey = process.env.GENLAYER_PRIVATE_KEY;
-const privateKey = suppliedKey || generatePrivateKey();
-if (!suppliedKey) {
-  console.log("No GENLAYER_PRIVATE_KEY supplied: using an ephemeral deployer key for this run only.");
-}
-const account = createAccount(privateKey);
-console.log("Deployer:", account.address);
+const account = createAccount(generatePrivateKey());
+console.log("Deployer (ephemeral):", account.address);
 console.log("Network: Stable Studionet, chain 61999, https://studio.genlayer.com/api");
 
 const client = createClient({ chain: studionet, account });
@@ -40,18 +39,26 @@ const receipt = await client.waitForTransactionReceipt({
   retries: 240,
   interval: 5000,
 });
-console.log("Receipt status:", receipt.status, receipt.statusName ?? "");
+const STATUS = { 0: "UNINITIALIZED", 1: "PENDING", 2: "PROPOSING", 3: "COMMITTING", 4: "REVEALING", 5: "ACCEPTED", 6: "UNDETERMINED", 7: "FINALIZED", 8: "CANCELED" };
+const receiptStatus = receipt.statusName ?? STATUS[receipt.status] ?? String(receipt.status ?? "");
+console.log("Receipt status:", receiptStatus);
+if (receiptStatus !== "FINALIZED") throw new Error(`deploy did not finalize: ${receiptStatus}`);
 
 const address =
   receipt?.data?.contract_address ??
   receipt?.txDataDecoded?.contractAddress ??
   receipt?.contractAddress ??
   null;
-if (!address) {
-  console.log("Full receipt (no private key):", JSON.stringify(receipt, null, 2).slice(0, 4000));
-  throw new Error("Could not find contract address in deploy receipt");
-}
+if (!address) throw new Error("Could not find contract address in deploy receipt");
 console.log("Contract address:", address);
+
+// Verify deployed code byte-for-byte via gen_getContractCode (base64).
+const cc = await client.request({ method: "gen_getContractCode", params: [address] });
+if (typeof cc !== "string" || cc.length === 0) throw new Error("gen_getContractCode returned nothing");
+const decoded = Buffer.from(cc, "base64").toString("utf-8");
+const deployedSha = createHash("sha256").update(decoded).digest("hex");
+console.log("Deployed code SHA-256:", deployedSha, "| match:", deployedSha === codeSha, "| byte-identical:", decoded === code);
+if (decoded !== code) throw new Error("deployed code differs from repo source");
 
 const deployment = {
   network: "Stable Studionet",
@@ -63,9 +70,10 @@ const deployment = {
   deployTxHash: txHash,
   deployer: account.address,
   contractFile: "contracts/copytrade.py",
-  contractSha256: createHash("sha256").update(code).digest("hex"),
+  contractSha256: codeSha,
+  deployedCodeSha256: deployedSha,
   deployedAt: new Date().toISOString(),
-  receiptStatus: receipt.statusName ?? ({ 0: "UNINITIALIZED", 1: "PENDING", 2: "PROPOSING", 3: "COMMITTING", 4: "REVEALING", 5: "ACCEPTED", 6: "UNDETERMINED", 7: "FINALIZED", 8: "CANCELED" }[receipt.status] ?? String(receipt.status ?? "")),
+  receiptStatus,
 };
 writeFileSync(path.join(root, "deployment.json"), JSON.stringify(deployment, null, 2) + "\n");
 console.log("Wrote deployment.json");

@@ -208,3 +208,8 @@ select { width: auto; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* Payout row + stake note (real-GEN flow). */
+.payout-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 4px 0 14px; }
+.credit-line { font-weight: 700; overflow-wrap: anywhere; }
+.stake-note { font-size: 12px; opacity: .75; }

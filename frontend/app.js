@@ -2,13 +2,20 @@
    in-browser temporary test account that is clearly labelled and
    discarded when the tab closes. Wallet connect is for identity and
    network checks; GenLayer writes need a Snap the wallet does not
-   have, so the temporary account is the honest write path. */
+   have, so the temporary account is the honest write path.
+   Money is real testnet GEN: the temporary account is funded from
+   the Studionet faucet first (10,000 GEN, free), then copy_trader
+   stakes exactly 5 GEN and challenge_audit exactly 2 GEN per call. */
 import { CONFIG, EXPLORER_TX, EXPLORER_ADDRESS } from "./config.js";
 import { I18N } from "./i18n.js";
 
 const $ = (sel) => document.querySelector(sel);
 const boardEl = $("#leaderboard");
 const toastEl = $("#txToast");
+
+const GEN_WEI = 10n ** 18n;
+const STAKE_WEI = 5n * GEN_WEI;
+const CHALLENGE_WEI = 2n * GEN_WEI;
 
 let lang = (navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
 try { lang = localStorage.getItem("copytrade-lang") || lang; } catch { /* ignore */ }
@@ -24,9 +31,22 @@ let walletChainId = null;
 let traders = [];
 let audits = [];
 let copies = [];
-let myAccount = null;
+let myCreditWei = 0n;
 let sortKey = "reputation";
 const compareSet = new Set();
+
+/* ---------- formatting ---------- */
+function fmtWei(wei) {
+  const w = BigInt(wei ?? 0);
+  const neg = w < 0n;
+  const abs = neg ? -w : w;
+  const whole = abs / GEN_WEI;
+  const frac = abs % GEN_WEI;
+  let fracStr = frac.toString().padStart(18, "0").replace(/0+$/, "");
+  if (fracStr.length > 6) fracStr = fracStr.slice(0, 6);
+  return (neg ? "-" : "") + whole.toString() + (fracStr ? "." + fracStr : "");
+}
+function fmtGen(wei) { return `${fmtWei(wei)} GEN`; }
 
 /* ---------- i18n ---------- */
 function applyI18n() {
@@ -83,6 +103,21 @@ function discardTempAccount() {
   $("#tempAccountBar").hidden = true;
   $("#tempAddress").textContent = "";
   refreshMyAccount();
+  renderCopies();
+}
+
+async function fundTempAccount() {
+  await loadGenlayer();
+  ensureTempAccount();
+  try {
+    toast(t("wallet.funding"));
+    await writeClient.request({ method: "sim_fundAccount", params: [tempAccount.address, 10000 * 10 ** 18] });
+    toast(t("wallet.funded"));
+    await refreshMyAccount();
+  } catch (err) {
+    toast(`${t("err.fundFailed")} — ${t("links.faucet")}: https://studio.genlayer.com/validators`, true);
+    console.error("fund temp account failed", err);
+  }
 }
 
 /* ---------- toast / tx flow ---------- */
@@ -100,21 +135,24 @@ function friendlyError(err) {
   const m = msg.match(/EXPECTED:\s*([a-z_0-9]+)/);
   const code = m ? m[1] : "";
   const map = {
-    insufficient_demo_balance: t("err.insufficient"),
-    demo_funds_already_claimed: t("trader.claimed"),
-    allocation_must_be_positive_multiple_of_100: t("err.allocation"),
-    pnl_bps_must_be_multiple_of_100_in_range: t("err.pnl"),
-    rejected_trader_cannot_be_followed: "REJECTED",
+    copy_stake_must_be_5_gen: t("trader.stake"),
+    challenge_stake_must_be_2_gen: t("trader.challengeStake"),
+    rejected_trader_cannot_be_copied: "REJECTED",
     trader_not_audited_yet: t("trader.notAudited"),
-    only_verified_trader_copies_settle: "VERIFIED",
-    audit_already_finalized: t("trader.statusFinalized"),
+    copy_not_open: t("copy.notOpen"),
+    only_copy_owner_can_settle: t("err.notOwner"),
+    only_copy_owner_can_cancel: t("err.notOwner"),
+    no_credit: t("err.noCredit"),
+    audit_not_challengeable: t("trader.statusClosed"),
+    audit_already_closed: t("trader.statusClosed"),
+    requester_cannot_challenge_own_audit: t("err.ownAudit"),
   };
   if (map[code]) return map[code];
   if (msg.includes("FINALIZED") && msg.includes("ERROR")) return t("tx.failed");
   return t("err.generic") + (msg ? ` (${msg.slice(0, 160)})` : "");
 }
 
-async function writeTx(functionName, args, successKey) {
+async function writeTx(functionName, args, value, successKey) {
   await loadGenlayer();
   ensureTempAccount();
   toast(t("tx.sending"));
@@ -123,7 +161,7 @@ async function writeTx(functionName, args, successKey) {
       address: CONFIG.contractAddress,
       functionName,
       args,
-      value: 0n,
+      value,
       leaderOnly: false,
     });
     toast(`${t("tx.waiting")} <a href="${EXPLORER_TX(hash)}" target="_blank" rel="noopener">${t("tx.view")}</a>`);
@@ -202,7 +240,7 @@ function renderWalletState() {
 /* ---------- data ---------- */
 async function refreshAll() {
   try {
-    const counts = await read("get_counts", []);
+    await read("get_counts", []);
     const [tList, aList, cList] = await Promise.all([
       read("list_traders", [0n, 20n]),
       read("list_audits", [0n, 20n]),
@@ -226,11 +264,15 @@ async function refreshAll() {
 
 async function refreshMyAccount() {
   const addr = walletAddress || (tempAccount && tempAccount.address);
-  if (!addr) { myAccount = null; $("#demoBalance").textContent = ""; return; }
+  if (!addr) { myCreditWei = 0n; $("#genBalance").textContent = ""; $("#creditLine").textContent = ""; return; }
   try {
-    myAccount = await read("get_account", [addr]);
-    const bal = myAccount ? myAccount.balance : 0;
-    $("#demoBalance").textContent = `mGEN ${Number(bal).toLocaleString()} · ${t("trader.reputation")} ${myAccount ? myAccount.reputation : 100}`;
+    const [credit, bal] = await Promise.all([
+      read("get_credit", [addr]),
+      readClient.getBalance({ address: addr }),
+    ]);
+    myCreditWei = BigInt(credit ?? 0);
+    $("#genBalance").textContent = `${fmtGen(bal)} · ${t("copies.credit")}: ${fmtGen(myCreditWei)}`;
+    $("#creditLine").textContent = `${t("copies.credit")}: ${fmtGen(myCreditWei)} (${myCreditWei.toString()} wei)`;
   } catch { /* keep previous */ }
 }
 
@@ -265,6 +307,13 @@ function verdictBadge(trader) {
   return `<span class="badge ${cls}">${trader.verdict} · ${trader.weight / 100}x</span>`;
 }
 
+function auditStatusLabel(audit) {
+  if (!audit) return "";
+  if (audit.status === "CHALLENGED") return t("trader.statusChallenged");
+  if (audit.status === "CLOSED") return t("trader.statusClosed");
+  return t("trader.statusPending");
+}
+
 function buildCard(trader, rank) {
   const li = document.createElement("li");
   li.className = "trader-card";
@@ -274,8 +323,9 @@ function buildCard(trader, rank) {
   const totalReturn = audit && audit.round1 ? audit.round1.total_return_bps : null;
   const avatarClass = rank % 3 === 1 ? "coral" : rank % 3 === 2 ? "gold" : "";
   const auditLine = audit
-    ? `<div class="audit-line">${audit.status === "FINALIZED" ? t("trader.statusFinalized") : audit.status === "CHALLENGED" ? t("trader.statusChallenged") : t("trader.statusEvaluating")} · ${audit.id} · ${audit.round1.verdict}${audit.round2 ? ` → ${audit.round2.verdict}` : ""}${audit.challenge_outcome ? ` · ${audit.challenge_outcome}` : ""}</div>`
+    ? `<div class="audit-line">${auditStatusLabel(audit)} · ${audit.id} · ${audit.round1.verdict}${audit.round2 ? ` → ${audit.round2.verdict}` : ""}${audit.challenge_outcome ? ` · ${audit.challenge_outcome}` : ""}</div>`
     : "";
+  const canCopy = trader.verdict === "VERIFIED" || trader.verdict === "SUSPECT";
   li.innerHTML = `
     <div class="trader-top">
       <div class="rank" aria-label="rank ${rank}">#${rank}</div>
@@ -292,16 +342,14 @@ function buildCard(trader, rank) {
       <div class="stat">${t("trader.followers")}<b>${trader.followers}</b></div>
       <div class="stat">${t("trader.reputation")}<b>${trader.reputation}</b></div>
     </div>
-    <div class="trader-evidence"><a href="${escapeHtml(trader.evidence_ref)}" target="_blank" rel="noopener">${t("trader.evidence")}</a> · ${t("trader.copied")} ${trader.total_copied} mGEN</div>
+    <div class="trader-evidence"><a href="${escapeHtml(trader.evidence_ref)}" target="_blank" rel="noopener">${t("trader.evidence")}</a> · ${t("trader.copied")} ${fmtGen(trader.total_copied_wei)}</div>
     <div class="trader-actions">
       <button class="btn btn-small" data-act="audit" data-id="${trader.id}">${t("trader.audit")}</button>
-      <button class="btn btn-small" data-act="finalize" data-id="${trader.id}" ${!audit || audit.status === "FINALIZED" ? "disabled" : ""}>${t("trader.finalize")}</button>
-      <button class="btn btn-small" data-act="challenge" data-id="${trader.id}" ${!audit || audit.status !== "EVALUATING" ? "disabled" : ""}>${t("trader.challenge")}</button>
+      <button class="btn btn-small" data-act="finalize" data-audit="${audit ? audit.id : ""}" ${!audit || audit.status === "CLOSED" ? "disabled" : ""}>${t("trader.finalize")}</button>
+      <button class="btn btn-small" data-act="challenge" data-audit="${audit ? audit.id : ""}" ${!audit || audit.status !== "PENDING" ? "disabled" : ""}>${t("trader.challenge")}</button>
       <button class="btn btn-small" data-act="compare" data-id="${trader.id}">${compareSet.has(trader.id) ? "✓ " : ""}${t("trader.compare")}</button>
-      <span class="field">
-        <input type="number" min="100" step="100" value="1000" data-alloc="${trader.id}" aria-label="${t("trader.allocation")}" ${trader.verdict !== "VERIFIED" && trader.verdict !== "SUSPECT" ? "disabled" : ""}>
-        <button class="btn btn-small btn-coral" data-act="follow" data-id="${trader.id}" ${trader.verdict !== "VERIFIED" && trader.verdict !== "SUSPECT" ? "disabled" : ""}>${t("trader.follow")}</button>
-      </span>
+      <button class="btn btn-small btn-coral" data-act="follow" data-id="${trader.id}" ${canCopy ? "" : "disabled"}>${t("trader.follow")}</button>
+      <span class="stake-note">${t("trader.stake")}</span>
     </div>
     ${auditLine}`;
   return li;
@@ -346,37 +394,47 @@ function renderCompare() {
         <dt>${t("trader.followers")}</dt><dd>${trader.followers}</dd>
         <dt>${t("trader.reputation")}</dt><dd>${trader.reputation}</dd>
         <dt>Verdict</dt><dd>${trader.verdict || "—"} · ${trader.weight / 100}x</dd>
-        <dt>${t("trader.copied")}</dt><dd>${trader.total_copied} mGEN</dd>
+        <dt>${t("trader.copied")}</dt><dd>${fmtGen(trader.total_copied_wei)}</dd>
       </dl>`;
     grid.appendChild(cell);
   });
 }
 
 /* ---------- copies ---------- */
+function copyStatusBadge(copy) {
+  if (copy.status === "SETTLED") return `<span class="badge verified">${t("copy.settled")}</span>`;
+  if (copy.status === "CANCELLED") return `<span class="badge rejected">${t("copy.cancelled")}</span>`;
+  return `<span class="badge pending">${t("copy.open")}</span>`;
+}
+
 function renderCopies() {
   const listEl = $("#copiesList");
   const addr = walletAddress || (tempAccount && tempAccount.address);
   const mine = addr ? copies.filter((c) => c.follower === addr) : [];
   $("#copiesEmpty").hidden = mine.length > 0;
+  $("#withdrawBtn").disabled = myCreditWei <= 0n;
   listEl.innerHTML = "";
   mine.forEach((copy) => {
     const trader = traders.find((tr) => tr.id === copy.trader_id);
     const li = document.createElement("li");
     li.className = "copy-card";
+    const settled = copy.status === "SETTLED";
     li.innerHTML = `
       <div class="copy-head">
         <b>${escapeHtml(trader ? trader.name : copy.trader_id)}</b>
-        <span class="badge ${copy.status === "SETTLED" ? "verified" : "pending"}">${copy.status === "SETTLED" ? t("copy.settled") : t("copy.open")}</span>
+        ${copyStatusBadge(copy)}
       </div>
       <div class="copy-numbers">
-        <span>${t("trader.allocation")}: <b>${copy.allocation} mGEN</b></span>
-        <span>${t("copy.effective")}: <b>${copy.effective} mGEN</b></span>
-        ${copy.status === "SETTLED" ? `<span>${t("copy.pnl")}: <b>${copy.pnl} mGEN (${copy.pnl_bps} bps)</b></span><span>${t("copy.settledValue")}: <b>${copy.settled_value} mGEN</b></span>` : ""}
+        <span>${t("copy.stake")}: <b>${fmtGen(copy.stake_wei)}</b></span>
+        <span>${t("copy.effective")}: <b>${fmtGen(copy.effective_wei)}</b></span>
+        <span>${t("copies.entryPrice")}: <b>$${copy.entry_bucket_usd}</b></span>
+        ${settled ? `<span>${t("copies.exitPrice")}: <b>$${copy.exit_bucket_usd}</b></span><span>${t("copy.pnl")}: <b>${fmtGen(copy.pnl_wei)} (${copy.pnl_bps} bps)</b>${copy.capped ? ` · ${t("copies.capped")}` : ""}</span><span>${t("copy.settledValue")}: <b>${fmtGen(copy.return_wei)}</b></span>` : ""}
+        ${copy.status === "CANCELLED" ? `<span>${t("copy.settledValue")}: <b>${fmtGen(copy.return_wei)}</b></span>` : ""}
       </div>
       ${copy.status === "OPEN" ? `
       <div class="copy-settle">
-        <input type="number" step="100" value="500" data-pnl="${copy.id}" aria-label="${t("trader.settlePnl")}">
         <button class="btn btn-small btn-solid" data-act="settle" data-id="${copy.id}">${t("trader.settle")}</button>
+        <button class="btn btn-small" data-act="cancel" data-id="${copy.id}">${t("copies.cancel")}</button>
       </div>` : ""}`;
     listEl.appendChild(li);
   });
@@ -387,35 +445,38 @@ boardEl.addEventListener("click", async (ev) => {
   const btn = ev.target.closest("[data-act]");
   if (!btn || btn.disabled) return;
   const id = btn.dataset.id;
+  const auditId = btn.dataset.audit;
   const act = btn.dataset.act;
   try {
-    if (act === "audit") await writeTx("audit_trader", [id], "audit.evaluating");
-    else if (act === "finalize") await writeTx("finalize_audit", [id], "audit.finalized");
+    if (act === "audit") await writeTx("audit_trader", [id], 0n, "audit.requested");
+    else if (act === "finalize") await writeTx("finalize_audit", [auditId], 0n, "audit.closed");
     else if (act === "challenge") {
       const reason = window.prompt(t("challenge.prompt"));
       if (!reason) { toast(t("err.challengeReason"), true); return; }
-      await writeTx("challenge_audit", [id, reason.slice(0, 200)], "challenge.sent");
+      await writeTx("challenge_audit", [auditId, reason.slice(0, 200)], CHALLENGE_WEI, "challenge.sent");
     } else if (act === "compare") {
       if (compareSet.has(id)) compareSet.delete(id); else compareSet.add(id);
       renderBoard(false);
       renderCompare();
     } else if (act === "follow") {
-      const input = document.querySelector(`[data-alloc="${id}"]`);
-      const allocation = Number(input ? input.value : 0);
-      if (!allocation || allocation <= 0 || allocation % 100 !== 0) { toast(t("err.allocation"), true); return; }
-      await writeTx("follow_trader", [id, BigInt(allocation)], "follow.done");
+      if (!window.confirm(`${t("trader.stake")} — ${t("trader.follow")}?`)) return;
+      await writeTx("copy_trader", [id], STAKE_WEI, "follow.done");
     }
   } catch { /* toast already shown */ }
 });
 
 $("#copiesList").addEventListener("click", async (ev) => {
-  const btn = ev.target.closest('[data-act="settle"]');
+  const btn = ev.target.closest("[data-act]");
   if (!btn || btn.disabled) return;
   const id = btn.dataset.id;
-  const input = document.querySelector(`[data-pnl="${id}"]`);
-  const pnl = Number(input ? input.value : 0);
-  if (!Number.isInteger(pnl) || pnl < -10000 || pnl > 10000 || pnl % 100 !== 0) { toast(t("err.pnl"), true); return; }
-  try { await writeTx("settle_copy", [id, BigInt(pnl)], "settle.done"); } catch { /* toast already shown */ }
+  try {
+    if (btn.dataset.act === "settle") await writeTx("settle_copy", [id], 0n, "settle.done");
+    else if (btn.dataset.act === "cancel") await writeTx("cancel_copy", [id], 0n, "cancel.done");
+  } catch { /* toast already shown */ }
+});
+
+$("#withdrawBtn").addEventListener("click", async () => {
+  try { await writeTx("withdraw_payout", [], 0n, "withdraw.done"); } catch { /* toast already shown */ }
 });
 
 $("#registerForm").addEventListener("submit", async (ev) => {
@@ -425,7 +486,7 @@ $("#registerForm").addEventListener("submit", async (ev) => {
   const evidence = $("#regEvidence").value.trim();
   if (!name || !code || !evidence) return;
   try {
-    await writeTx("register_trader", [name, code, evidence], "register.done");
+    await writeTx("register_trader", [name, code, evidence], 0n, "register.done");
     ev.target.reset();
   } catch { /* toast already shown */ }
 });
@@ -443,16 +504,7 @@ $("#walletBtn").addEventListener("click", () => {
   else connectWallet();
 });
 $("#tempDiscard").addEventListener("click", discardTempAccount);
-
-/* claim button (created in JS so it only appears once the app loads) */
-const claimBtn = document.createElement("button");
-claimBtn.className = "btn btn-small";
-claimBtn.type = "button";
-claimBtn.textContent = t("trader.claim");
-claimBtn.addEventListener("click", async () => {
-  try { await writeTx("claim_demo_funds", [], "claim.done"); } catch { /* toast already shown */ }
-});
-$("#networkStrip").appendChild(claimBtn);
+$("#tempFundBtn").addEventListener("click", fundTempAccount);
 
 /* ---------- static links + boot ---------- */
 function fillLinks() {

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CopyTrade — Follow people, not tickers</title>
-<meta name="description" content="CopyTrade: a people-centred social copy-trading board on GenLayer. Trader track records are audited by consensus before anyone can copy them.">
+<meta name="description" content="CopyTrade: a people-centred social copy-trading board on GenLayer. Trader track records are audited by consensus before anyone can copy them with real testnet GEN.">
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
 {
@@ -34,19 +34,20 @@
   <div class="network-strip" id="networkStrip">
     <span><span class="dot" aria-hidden="true"></span><span data-i18n="network.name">Stable Studionet</span> · <span data-i18n="network.chain">Chain 61999</span></span>
     <span id="walletState" class="wallet-state" data-i18n="wallet.notConnected">Wallet not connected — reading is open to everyone.</span>
-    <span id="demoBalance" class="demo-balance"></span>
+    <span id="genBalance" class="demo-balance"></span>
   </div>
 </header>
 
 <main>
   <section class="intro" aria-labelledby="introTitle">
     <h2 id="introTitle" data-i18n="intro.title">The board is people.</h2>
-    <p data-i18n="intro.body">Every trader here publishes a track record. Independent validators fetch it, check the identity, the dates and the arithmetic, and only then set a verdict — VERIFIED, SUSPECT or REJECTED. The verdict sets the copy weight. Copying moves simulated mGEN on a ledger, never real funds.</p>
+    <p data-i18n="intro.body">Every trader here publishes a track record. Independent validators fetch it, check the identity, the dates and the arithmetic, and only then set a verdict — VERIFIED, SUSPECT or REJECTED. The verdict sets the copy weight. Copying stakes real testnet GEN: 5 GEN per copy, settled against the live BTC price, paid out in GEN.</p>
     <div class="intro-links">
       <a id="contractLink" href="#" target="_blank" rel="noopener" data-i18n="links.contract">Contract on explorer</a>
       <a id="evidenceLink" href="#" target="_blank" rel="noopener" data-i18n="links.evidence">Evidence (evidence.json)</a>
       <a id="repoLink" href="#" target="_blank" rel="noopener" data-i18n="links.repo">Source on GitHub</a>
       <a id="mechanismLink" href="#" target="_blank" rel="noopener" data-i18n="links.mechanism">How the audit works</a>
+      <a href="https://studio.genlayer.com/validators" target="_blank" rel="noopener" data-i18n="links.faucet">Get test GEN (faucet)</a>
     </div>
   </section>
 
@@ -85,7 +86,11 @@
 
   <section class="copies" aria-labelledby="copiesTitle">
     <h2 id="copiesTitle" data-i18n="copies.title">My copy positions</h2>
-    <p class="section-sub" data-i18n="copies.sub">Positions opened by the connected wallet or the temporary test account. Settlement applies the trader's reported period result, in basis points.</p>
+    <p class="section-sub" data-i18n="copies.sub">Positions opened by the connected wallet or the temporary test account. Every copy stakes exactly 5 GEN. Settlement fetches the live BTC price on-chain and pays principal plus PnL back as a withdrawable GEN credit.</p>
+    <div class="payout-row">
+      <span id="creditLine" class="credit-line"></span>
+      <button id="withdrawBtn" class="btn btn-solid" type="button" data-i18n="copies.withdraw">Withdraw payout</button>
+    </div>
     <div id="copiesEmpty" class="empty">
       <p data-i18n="copies.empty">No copy positions yet. Follow a VERIFIED or SUSPECT trader to open one.</p>
     </div>
@@ -115,15 +120,16 @@
     <dl class="trust-list">
       <div><dt data-i18n="trust.contract">Contract</dt><dd><a id="trustContract" href="#" target="_blank" rel="noopener"></a></dd></div>
       <div><dt data-i18n="trust.network">Network</dt><dd>Stable Studionet · Chain 61999 · https://studio.genlayer.com/api</dd></div>
-      <div><dt data-i18n="trust.money">Money</dt><dd data-i18n="trust.moneyBody">Simulated mGEN only. Claim 10,000 demo mGEN once per address; copying and settlement move ledger balances, never real GEN.</dd></div>
+      <div><dt data-i18n="trust.money">Money</dt><dd data-i18n="trust.moneyBody">Real testnet GEN on Stable Studionet — free from the faucet, zero cash cost. Each copy stakes exactly 5 GEN (5000000000000000000 wei); each challenge stakes exactly 2 GEN (2000000000000000000 wei). Payouts are withdrawable GEN credits, pulled with Withdraw payout.</dd></div>
       <div><dt data-i18n="trust.audit">Audit rule</dt><dd data-i18n="trust.auditBody">Five binary checks, exact-match consensus, no score bands. VERIFIED → copy weight 1.0x, SUSPECT → 0.5x, REJECTED → 0x. A record older than 90 days can never be VERIFIED.</dd></div>
+      <div><dt data-i18n="trust.settle">Settlement rule</dt><dd data-i18n="trust.settleBody">Settlement fetches the live BTC price (CoinDesk first, CoinGecko fallback), buckets it to whole $100, and computes PnL = weighted exposure × price-change bps with exact integer division. A winning copy's upside above its own stake is paid from the house pool and capped by it.</dd></div>
       <div><dt data-i18n="trust.updated">Last read</dt><dd id="lastRead">—</dd></div>
     </dl>
   </section>
 </main>
 
 <footer class="footer">
-  <p data-i18n="footer.line1">CopyTrade runs on Stable Studionet (Chain 61999). All amounts are simulated mGEN.</p>
+  <p data-i18n="footer.line1">CopyTrade runs on Stable Studionet (Chain 61999). All amounts are real testnet GEN, free from the faucet.</p>
   <p><a id="footerRepo" href="#" target="_blank" rel="noopener">GitHub</a> · <a id="footerExplorer" href="#" target="_blank" rel="noopener">Explorer</a></p>
 </footer>
 
@@ -131,6 +137,7 @@
 <div id="tempAccountBar" class="temp-bar" hidden>
   <span data-i18n="temp.label">Writing with a temporary test account — not your wallet signature. The key lives only in this browser tab and is discarded when you leave.</span>
   <span id="tempAddress" class="temp-address"></span>
+  <button id="tempFundBtn" class="btn btn-ghost" type="button" data-i18n="wallet.fundTemp">Fund test account (faucet)</button>
   <button id="tempDiscard" class="btn btn-ghost" type="button" data-i18n="temp.discard">Discard</button>
 </div>
 
