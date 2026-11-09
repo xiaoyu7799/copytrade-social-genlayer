@@ -1,0 +1,210 @@
+/* CopyTrade visual identity: warm editorial "trading floor" paper.
+   Tokens: paper, ink, coral, gold, leaf. One motion technique only:
+   the View Transitions API (rank changes travel); everything else is
+   instant. Reduced motion disables even that. */
+:root {
+  --paper: #faf6ef;
+  --paper-2: #f1eadd;
+  --card: #fffdf8;
+  --ink: #1e1b16;
+  --muted: #6b6156;
+  --line: #e3d9c6;
+  --coral: #e4572e;
+  --coral-soft: #fbe9e2;
+  --gold: #e9a426;
+  --gold-soft: #fbf1d7;
+  --leaf: #2a7f6f;
+  --leaf-soft: #dff0ea;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(30, 27, 22, 0.08), 0 8px 24px rgba(30, 27, 22, 0.06);
+  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+a { color: var(--leaf); }
+a:visited { color: var(--leaf); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* Masthead */
+.masthead { border-bottom: 3px solid var(--ink); background: var(--paper); }
+.masthead-inner {
+  max-width: 1080px; margin: 0 auto; padding: 20px 16px 14px;
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between;
+}
+.brand { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.brand-mark {
+  width: 52px; height: 52px; flex: 0 0 52px;
+  display: grid; place-items: center;
+  background: var(--coral); color: #fff;
+  font-family: var(--serif); font-weight: 700; font-size: 22px;
+  border-radius: 50% 50% 50% 6px;
+}
+.brand-name { font-family: var(--serif); font-size: 34px; line-height: 1; margin: 0; letter-spacing: -0.5px; }
+.brand-tag { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.masthead-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.network-strip {
+  max-width: 1080px; margin: 0 auto; padding: 10px 16px 14px;
+  display: flex; flex-wrap: wrap; gap: 6px 20px;
+  font-size: 13px; color: var(--muted);
+}
+.network-strip .dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--leaf); margin-right: 6px; vertical-align: 1px;
+}
+.wallet-state { font-weight: 600; color: var(--ink); }
+.demo-balance { font-weight: 700; color: var(--leaf); }
+
+/* Buttons */
+.btn {
+  border: 2px solid var(--ink); border-radius: 999px;
+  padding: 9px 18px; background: transparent; font-weight: 700;
+  font-size: 14px; line-height: 1.2; min-height: 44px;
+}
+.btn-solid { background: var(--ink); color: var(--paper); }
+.btn-coral { background: var(--coral); border-color: var(--coral); color: #fff; }
+.btn-ghost { background: transparent; }
+.btn-small { padding: 6px 12px; min-height: 36px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Layout */
+main { max-width: 1080px; margin: 0 auto; padding: 8px 16px 40px; }
+section { margin-top: 36px; }
+h2 { font-family: var(--serif); font-size: 28px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.3px; }
+.section-sub { color: var(--muted); margin: 0 0 16px; max-width: 62ch; }
+.section-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+.section-head h2 { margin-bottom: 6px; }
+.sort-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+select, input[type="text"], input[type="url"], input[type="number"] {
+  border: 2px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; background: var(--card); min-height: 44px; width: 100%;
+}
+select { width: auto; }
+
+/* Intro */
+.intro { margin-top: 28px; border-bottom: 1px solid var(--line); padding-bottom: 24px; }
+.intro p { max-width: 68ch; font-size: 17px; }
+.intro-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: 14px; font-weight: 600; }
+
+/* Leaderboard: people, not rows */
+.leaderboard { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 16px; }
+.trader-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 18px;
+  display: grid; gap: 14px;
+}
+.trader-top { display: flex; gap: 14px; align-items: flex-start; }
+.rank {
+  font-family: var(--serif); font-size: 30px; line-height: 1; color: var(--coral);
+  min-width: 44px; text-align: center; padding-top: 6px;
+}
+.avatar {
+  width: 60px; height: 60px; flex: 0 0 60px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--serif); font-weight: 700; font-size: 22px; color: #fff;
+  background: var(--leaf);
+}
+.avatar.coral { background: var(--coral); }
+.avatar.gold { background: var(--gold); color: var(--ink); }
+.trader-id { min-width: 0; flex: 1; }
+.trader-name { font-family: var(--serif); font-size: 22px; margin: 0; line-height: 1.2; overflow-wrap: anywhere; }
+.trader-code { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+.badge {
+  display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 4px 10px; border-radius: 999px; margin-top: 8px; white-space: nowrap;
+}
+.badge.verified { background: var(--leaf-soft); color: var(--leaf); }
+.badge.suspect { background: var(--gold-soft); color: #7a5b00; }
+.badge.rejected { background: var(--coral-soft); color: var(--coral); }
+.badge.pending { background: var(--paper-2); color: var(--muted); }
+.trader-stats {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px;
+  border-top: 1px solid var(--line); padding-top: 12px;
+}
+.stat { font-size: 13px; color: var(--muted); }
+.stat b { display: block; font-size: 19px; color: var(--ink); font-family: var(--serif); font-weight: 700; }
+.trader-evidence { font-size: 13px; overflow-wrap: anywhere; }
+.trader-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.trader-actions .field { display: flex; gap: 6px; align-items: center; flex: 1 1 220px; min-width: 0; }
+.trader-actions .field input { flex: 1; min-width: 0; }
+.audit-line { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.audit-line code { overflow-wrap: anywhere; }
+.empty { border: 2px dashed var(--line); border-radius: var(--radius); padding: 22px; color: var(--muted); text-align: center; }
+.board-note { font-size: 13px; color: var(--muted); margin-top: 14px; }
+.skeleton-wrap { display: grid; gap: 16px; margin-top: 18px; }
+.skeleton-card { height: 190px; border-radius: var(--radius); background: var(--paper-2); }
+
+/* Compare */
+.compare-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+.compare-cell { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.compare-cell h3 { font-family: var(--serif); margin: 0 0 8px; font-size: 20px; }
+.compare-cell dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: 14px; }
+.compare-cell dt { color: var(--muted); }
+.compare-cell dd { margin: 0; font-weight: 700; }
+
+/* Copies */
+.copies-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.copy-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+.copy-card .copy-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.copy-card .copy-head b { font-family: var(--serif); font-size: 18px; }
+.copy-numbers { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; }
+.copy-numbers span b { font-size: 16px; }
+.copy-settle { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.copy-settle input { max-width: 200px; }
+
+/* Forms */
+.form { display: grid; gap: 14px; grid-template-columns: 1fr; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.form label span { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.form-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+/* Trust */
+.trust-list { margin: 0; }
+.trust-list > div { display: grid; grid-template-columns: 110px 1fr; gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.trust-list dt { font-weight: 800; }
+.trust-list dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Footer / toast / temp bar */
+.footer { max-width: 1080px; margin: 0 auto; padding: 24px 16px 90px; color: var(--muted); font-size: 14px; border-top: 3px solid var(--ink); }
+.tx-toast {
+  position: fixed; left: 16px; right: 16px; bottom: 76px; z-index: 50;
+  background: var(--ink); color: var(--paper); border-radius: 12px;
+  padding: 14px 16px; font-size: 14px; box-shadow: var(--shadow);
+  overflow-wrap: anywhere;
+}
+.tx-toast a { color: var(--gold); }
+.temp-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  background: var(--gold-soft); border-top: 2px solid var(--gold);
+  padding: 10px 16px; font-size: 13px;
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+}
+.temp-address { font-weight: 700; overflow-wrap: anywhere; }
+
+/* View Transitions: the ONE motion technique. Rank changes travel. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+.trader-card { view-transition-name: var(--vt-name, none); }
+@media (min-width: 720px) {
+  .leaderboard { grid-template-columns: 1fr 1fr; }
+  .trader-stats { grid-template-columns: repeat(4, 1fr); }
+  .form { grid-template-columns: 1fr 1fr; }
+  .form .wide { grid-column: 1 / -1; }
+  .compare-grid { grid-template-columns: 1fr 1fr; }
+  .masthead-inner { padding-top: 28px; }
+  h2 { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

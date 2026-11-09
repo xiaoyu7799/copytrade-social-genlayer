@@ -1,0 +1,253 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "contractAddress": "0xF9FC6D2244b8032827EBea844Ce56D44233A69d6",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xF9FC6D2244b8032827EBea844Ce56D44233A69d6",
+  "flowAccountA": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+  "flowAccountB": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
+  "txs": {
+    "registerAva": {
+      "hash": "0xa78c681633d3b5a3799cc2f55e6f99cdc2b9139ccfcfcb1ba49fb92aa0653dc6",
+      "status": "FINALIZED"
+    },
+    "auditAva": {
+      "hash": "0x2cf241ebb3fdd8af5e12e11023a0e020be8885ff0315916dca9c548494b4c553",
+      "status": "FINALIZED"
+    },
+    "finalizeAva": {
+      "hash": "0x51047937f6dce3f50ff68baf62a95e3cb0a64bde52b6a91e5d83d096f703eab6",
+      "status": "FINALIZED"
+    },
+    "claimA": {
+      "hash": "0x4587f6bf6a8f181964eaa8157b219f629ba820b9b011ddd82c7089259fd85503",
+      "status": "FINALIZED"
+    },
+    "followAva": {
+      "hash": "0xcea0c8273ca92a0bda64f97a856abf42471a6b54f4bfa609293ba87bd605a882",
+      "status": "FINALIZED"
+    },
+    "settleAva": {
+      "hash": "0x5161669a458c510bd3d36b2cb79f807a94654dddd79e45f9592363960e907c2b",
+      "status": "FINALIZED"
+    },
+    "registerBen": {
+      "hash": "0x21163b48dd328cf04fdfdfc6641e5c33f48eb1bd17cd1b085491c2144c34ae63",
+      "status": "FINALIZED"
+    },
+    "auditBen": {
+      "hash": "0xcc7bf444dac66463323dead72d9221a7e66d29f8e86c2006f11790d9fca0e104",
+      "status": "FINALIZED"
+    },
+    "challengeBen": {
+      "hash": "0x58830ccd7dd2a401cd3433d60ee3e22dd309ad9bb5dc26e48dc7765e6ade4e7f",
+      "status": "FINALIZED"
+    },
+    "finalizeBen": {
+      "hash": "0x9f247a340d58b21a2d9fbba4ed8c5dd6c26038b26042a0cd7cb2e11ed7a19cc9",
+      "status": "FINALIZED"
+    },
+    "followBen": {
+      "hash": "0x5c9af6dc996ab0584d130264a4b192ff68f65ccfec075255c926348a18837df3",
+      "status": "FINALIZED"
+    },
+    "registerCara": {
+      "hash": "0x55b0c5fbab26c036c718800b83acbd89a05354c3f9884d33e6675969576d1570",
+      "status": "FINALIZED"
+    },
+    "auditCara": {
+      "hash": "0xeaf28aba514aba34183f7d012a95e35a89aa9dc06fe4628eb2148596219a2332",
+      "status": "FINALIZED"
+    },
+    "finalizeCara": {
+      "hash": "0xbc66b7d599a44bfa6b5aa36b757f0793bd9e6ab6438716f9f33558909e7ea0df",
+      "status": "FINALIZED"
+    }
+  },
+  "readBack": {
+    "counts": {
+      "traders": 3,
+      "audits": 3,
+      "copies": 2,
+      "witnesses": 0
+    },
+    "traders": [
+      {
+        "id": "t0",
+        "name": "Ava Chen",
+        "trader_code": "AVA-001",
+        "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ava.json",
+        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "AUDITED_VERIFIED",
+        "verdict": "VERIFIED",
+        "weight": 100,
+        "reputation": 111,
+        "followers": 1,
+        "total_copied": 1000,
+        "settled_copies": 1,
+        "witness_count": 0
+      },
+      {
+        "id": "t1",
+        "name": "Ben Okafor",
+        "trader_code": "BEN-002",
+        "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
+        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "AUDITED_SUSPECT",
+        "verdict": "SUSPECT",
+        "weight": 50,
+        "reputation": 100,
+        "followers": 1,
+        "total_copied": 500,
+        "settled_copies": 0,
+        "witness_count": 0
+      },
+      {
+        "id": "t2",
+        "name": "Cara Diaz",
+        "trader_code": "CAR-003",
+        "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-cara.json",
+        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "AUDITED_REJECTED",
+        "verdict": "REJECTED",
+        "weight": 0,
+        "reputation": 90,
+        "followers": 0,
+        "total_copied": 0,
+        "settled_copies": 0,
+        "witness_count": 0
+      }
+    ],
+    "audits": [
+      {
+        "id": "a0",
+        "trader_id": "t0",
+        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "FINALIZED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ava.json",
+          "total_return_bps": 1390,
+          "trade_count": 10,
+          "trader_code": "AVA-001",
+          "verdict": "VERIFIED",
+          "wins": 7
+        },
+        "round2": null,
+        "challenger": null,
+        "challenge_reason": null,
+        "challenge_outcome": null
+      },
+      {
+        "id": "a1",
+        "trader_id": "t1",
+        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "FINALIZED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": false,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-08-10",
+          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
+          "total_return_bps": 860,
+          "trade_count": 8,
+          "trader_code": "BEN-002",
+          "verdict": "SUSPECT",
+          "wins": 5
+        },
+        "round2": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": false,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-08-10",
+          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
+          "total_return_bps": 860,
+          "trade_count": 8,
+          "trader_code": "BEN-002",
+          "verdict": "SUSPECT",
+          "wins": 5
+        },
+        "challenger": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
+        "challenge_reason": "Record is stale: last trade 2026-08-10, over 90 days old.",
+        "challenge_outcome": "CHALLENGE_FAILED"
+      },
+      {
+        "id": "a2",
+        "trader_id": "t2",
+        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "status": "FINALIZED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": false,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-cara.json",
+          "total_return_bps": 300,
+          "trade_count": 6,
+          "trader_code": "CAR-003",
+          "verdict": "REJECTED",
+          "wins": 3
+        },
+        "round2": null,
+        "challenger": null,
+        "challenge_reason": null,
+        "challenge_outcome": null
+      }
+    ],
+    "copies": [
+      {
+        "id": "c0",
+        "follower": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "trader_id": "t0",
+        "allocation": 1000,
+        "weight": 100,
+        "effective": 1000,
+        "status": "SETTLED",
+        "pnl_bps": 500,
+        "pnl": 50,
+        "settled_value": 1050
+      },
+      {
+        "id": "c1",
+        "follower": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "trader_id": "t1",
+        "allocation": 1000,
+        "weight": 50,
+        "effective": 500,
+        "status": "OPEN",
+        "pnl_bps": null,
+        "pnl": null,
+        "settled_value": null
+      }
+    ],
+    "witnesses": [],
+    "accountA": {
+      "address": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+      "balance": 9050,
+      "claimed_demo": true,
+      "reputation": 100
+    },
+    "accountB": {
+      "address": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
+      "balance": 0,
+      "claimed_demo": false,
+      "reputation": 95
+    }
+  },
+  "checkedAt": "2026-11-09T07:57:25.357Z"
+}

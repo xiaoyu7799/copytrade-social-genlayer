@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CopyTrade — Follow people, not tickers</title>
+<meta name="description" content="CopyTrade: a people-centred social copy-trading board on GenLayer. Trader track records are audited by consensus before anyone can copy them.">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{
+  "imports": {
+    "genlayer-js": "https://esm.sh/genlayer-js@1.1.8",
+    "genlayer-js/chains": "https://esm.sh/genlayer-js@1.1.8/chains",
+    "genlayer-js/types": "https://esm.sh/genlayer-js@1.1.8/types"
+  }
+}
+</script>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">CT</div>
+      <div>
+        <h1 class="brand-name">CopyTrade</h1>
+        <p class="brand-tag" data-i18n="tagline">Follow people, not tickers.</p>
+      </div>
+    </div>
+    <div class="masthead-actions">
+      <button id="langToggle" class="btn btn-ghost" type="button">中文</button>
+      <button id="walletBtn" class="btn btn-solid" type="button" data-i18n="wallet.connect">Connect wallet</button>
+    </div>
+  </div>
+  <div class="network-strip" id="networkStrip">
+    <span><span class="dot" aria-hidden="true"></span><span data-i18n="network.name">Stable Studionet</span> · <span data-i18n="network.chain">Chain 61999</span></span>
+    <span id="walletState" class="wallet-state" data-i18n="wallet.notConnected">Wallet not connected — reading is open to everyone.</span>
+    <span id="demoBalance" class="demo-balance"></span>
+  </div>
+</header>
+
+<main>
+  <section class="intro" aria-labelledby="introTitle">
+    <h2 id="introTitle" data-i18n="intro.title">The board is people.</h2>
+    <p data-i18n="intro.body">Every trader here publishes a track record. Independent validators fetch it, check the identity, the dates and the arithmetic, and only then set a verdict — VERIFIED, SUSPECT or REJECTED. The verdict sets the copy weight. Copying moves simulated mGEN on a ledger, never real funds.</p>
+    <div class="intro-links">
+      <a id="contractLink" href="#" target="_blank" rel="noopener" data-i18n="links.contract">Contract on explorer</a>
+      <a id="evidenceLink" href="#" target="_blank" rel="noopener" data-i18n="links.evidence">Evidence (evidence.json)</a>
+      <a id="repoLink" href="#" target="_blank" rel="noopener" data-i18n="links.repo">Source on GitHub</a>
+      <a id="mechanismLink" href="#" target="_blank" rel="noopener" data-i18n="links.mechanism">How the audit works</a>
+    </div>
+  </section>
+
+  <section class="board" aria-labelledby="boardTitle">
+    <div class="section-head">
+      <h2 id="boardTitle" data-i18n="board.title">Trader leaderboard</h2>
+      <div class="sort-row">
+        <label for="sortSelect" data-i18n="board.sortBy">Sort by</label>
+        <select id="sortSelect">
+          <option value="reputation" data-i18n="board.sortReputation">Reputation</option>
+          <option value="followers" data-i18n="board.sortFollowers">Followers</option>
+          <option value="winrate" data-i18n="board.sortWinrate">Win rate</option>
+        </select>
+        <button id="refreshBtn" class="btn btn-ghost" type="button" data-i18n="board.refresh">Refresh</button>
+      </div>
+    </div>
+    <div id="boardEmpty" class="empty" hidden>
+      <p data-i18n="board.empty">No traders yet. Register the first one below.</p>
+    </div>
+    <div id="boardSkeleton" class="skeleton-wrap" aria-hidden="true">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+    <ol id="leaderboard" class="leaderboard"></ol>
+    <p class="board-note" data-i18n="board.note">Ranks travel when they change — if your browser supports View Transitions. Otherwise the board just updates.</p>
+  </section>
+
+  <section class="compare" id="compareSection" aria-labelledby="compareTitle" hidden>
+    <div class="section-head">
+      <h2 id="compareTitle" data-i18n="compare.title">Compare traders</h2>
+      <button id="compareClear" class="btn btn-ghost" type="button" data-i18n="compare.clear">Clear</button>
+    </div>
+    <div id="compareGrid" class="compare-grid"></div>
+  </section>
+
+  <section class="copies" aria-labelledby="copiesTitle">
+    <h2 id="copiesTitle" data-i18n="copies.title">My copy positions</h2>
+    <p class="section-sub" data-i18n="copies.sub">Positions opened by the connected wallet or the temporary test account. Settlement applies the trader's reported period result, in basis points.</p>
+    <div id="copiesEmpty" class="empty">
+      <p data-i18n="copies.empty">No copy positions yet. Follow a VERIFIED or SUSPECT trader to open one.</p>
+    </div>
+    <ul id="copiesList" class="copies-list"></ul>
+  </section>
+
+  <section class="register" aria-labelledby="registerTitle">
+    <h2 id="registerTitle" data-i18n="register.title">Register a trader</h2>
+    <p class="section-sub" data-i18n="register.sub">Publish a track record as JSON at a public URL, then ask the network to audit it. The record must list trades with dates and per-trade results in basis points.</p>
+    <form id="registerForm" class="form">
+      <label><span data-i18n="register.name">Trader name</span>
+        <input id="regName" type="text" maxlength="80" required autocomplete="off" placeholder="Ava Chen">
+      </label>
+      <label><span data-i18n="register.code">Trader code (A–Z, 0–9, dash)</span>
+        <input id="regCode" type="text" maxlength="24" required autocomplete="off" placeholder="AVA-001">
+      </label>
+      <label class="wide"><span data-i18n="register.evidence">Track-record URL (public JSON, https)</span>
+        <input id="regEvidence" type="url" maxlength="500" required autocomplete="off" placeholder="https://…/trader-ava.json">
+      </label>
+      <button class="btn btn-solid" type="submit" data-i18n="register.submit">Register trader</button>
+    </form>
+    <p class="form-note" data-i18n="register.note">Registration only files the claim. The verdict comes from the audit, run by consensus.</p>
+  </section>
+
+  <section class="trust" aria-labelledby="trustTitle">
+    <h2 id="trustTitle" data-i18n="trust.title">Trust surface</h2>
+    <dl class="trust-list">
+      <div><dt data-i18n="trust.contract">Contract</dt><dd><a id="trustContract" href="#" target="_blank" rel="noopener"></a></dd></div>
+      <div><dt data-i18n="trust.network">Network</dt><dd>Stable Studionet · Chain 61999 · https://studio.genlayer.com/api</dd></div>
+      <div><dt data-i18n="trust.money">Money</dt><dd data-i18n="trust.moneyBody">Simulated mGEN only. Claim 10,000 demo mGEN once per address; copying and settlement move ledger balances, never real GEN.</dd></div>
+      <div><dt data-i18n="trust.audit">Audit rule</dt><dd data-i18n="trust.auditBody">Five binary checks, exact-match consensus, no score bands. VERIFIED → copy weight 1.0x, SUSPECT → 0.5x, REJECTED → 0x. A record older than 90 days can never be VERIFIED.</dd></div>
+      <div><dt data-i18n="trust.updated">Last read</dt><dd id="lastRead">—</dd></div>
+    </dl>
+  </section>
+</main>
+
+<footer class="footer">
+  <p data-i18n="footer.line1">CopyTrade runs on Stable Studionet (Chain 61999). All amounts are simulated mGEN.</p>
+  <p><a id="footerRepo" href="#" target="_blank" rel="noopener">GitHub</a> · <a id="footerExplorer" href="#" target="_blank" rel="noopener">Explorer</a></p>
+</footer>
+
+<div id="txToast" class="tx-toast" role="status" aria-live="polite" hidden></div>
+<div id="tempAccountBar" class="temp-bar" hidden>
+  <span data-i18n="temp.label">Writing with a temporary test account — not your wallet signature. The key lives only in this browser tab and is discarded when you leave.</span>
+  <span id="tempAddress" class="temp-address"></span>
+  <button id="tempDiscard" class="btn btn-ghost" type="button" data-i18n="temp.discard">Discard</button>
+</div>
+
+<script type="module" src="config.js"></script>
+<script type="module" src="i18n.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
