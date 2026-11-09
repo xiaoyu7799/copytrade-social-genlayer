@@ -1,0 +1,1 @@
+{"dependencies":{"genlayer-js":"1.1.8"},"name":"copytrade-social-genlayer","private":true,"scripts":{"deploy":"node scripts/deploy.mjs","flow":"node scripts/flow.mjs","test":"python3 tests/test_contract_logic.py"},"type":"module","version":"1.0.0"}
