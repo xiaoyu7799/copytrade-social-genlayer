@@ -46,6 +46,14 @@ movement.
   unreachable, copies cannot open and open copies cannot settle
   until a source answers. Nothing is stored from a failed price
   fetch.
+- **A failed payable call can still move GEN into the contract.**
+  Measured on Studionet: a `copy_trader` call that fails validation
+  (REJECTED trader) finalises with an error and writes nothing, but
+  its attached 5 GEN still lands in the contract balance, with no
+  credit and no counter entry. The counter invariant still holds
+  exactly; the balance is 5 GEN above `total_received -
+  total_paid_out`, and `get_totals` reports that through
+  `balance_matches_wei`. Only successful calls update the counters.
 - **A challenge stake stays locked until close.** A challenged
   audit holds the 2 GEN stake until somebody calls
   `finalize_audit`. Finalisation is permissionless, so anyone can

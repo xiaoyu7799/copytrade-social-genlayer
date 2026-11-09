@@ -2,74 +2,219 @@
   "network": "Stable Studionet",
   "chainId": 61999,
   "rpcUrl": "https://studio.genlayer.com/api",
-  "contractAddress": "0xF9FC6D2244b8032827EBea844Ce56D44233A69d6",
-  "explorer": "https://explorer-studio.genlayer.com/address/0xF9FC6D2244b8032827EBea844Ce56D44233A69d6",
-  "flowAccountA": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
-  "flowAccountB": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
-  "txs": {
-    "registerAva": {
-      "hash": "0xa78c681633d3b5a3799cc2f55e6f99cdc2b9139ccfcfcb1ba49fb92aa0653dc6",
-      "status": "FINALIZED"
+  "contractAddress": "0xee98fbF33B2619f4BaF56476B1D760Df51F7DB63",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xee98fbF33B2619f4BaF56476B1D760Df51F7DB63",
+  "deployment": {
+    "network": "Stable Studionet",
+    "chainId": 61999,
+    "rpcUrl": "https://studio.genlayer.com/api",
+    "explorer": "https://explorer-studio.genlayer.com/address/0xee98fbF33B2619f4BaF56476B1D760Df51F7DB63",
+    "studio": "https://studio.genlayer.com/?import-contract=0xee98fbF33B2619f4BaF56476B1D760Df51F7DB63",
+    "contractAddress": "0xee98fbF33B2619f4BaF56476B1D760Df51F7DB63",
+    "deployTxHash": "0x292fbfc9ca9941bd1dbc4b2e4d27c6a4234bfb83c3b2bbe7a5cd8b17bd2c2129",
+    "deployer": "0xa64589eDEb04e167abdD4E20D43525d7b0f36029",
+    "contractFile": "contracts/copytrade.py",
+    "contractSha256": "baed62ab9581f384625e6d574cd7717b85ab0f026851dc9de8be11a37b3224e9",
+    "deployedCodeSha256": "baed62ab9581f384625e6d574cd7717b85ab0f026851dc9de8be11a37b3224e9",
+    "deployedAt": "2026-11-09T10:31:50.022Z",
+    "receiptStatus": "FINALIZED"
+  },
+  "phase1": {
+    "note": "Phase 1 ran scripts/flow.mjs and stopped at the Dana close: the evidence file was corrected 999 -> 300, curl saw 300, but all validators still fetched the stale 999 (CDN cache), so round2 closed SUSPECT and the challenge failed. Phase-1 accounts A/B/C keys were lost with the phase-1 process; no funds need recovering from them (B's two 2 GEN challenge stakes were forfeited into the house pool by design).",
+    "accounts": {
+      "A": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
+      "B": "0x550eA0f1b60a9449e4F0A15De90542F43b8DC084",
+      "C": "0xFD0f6D913AEefa3FdBb12Ca611523f3bA5256E63"
     },
-    "auditAva": {
-      "hash": "0x2cf241ebb3fdd8af5e12e11023a0e020be8885ff0315916dca9c548494b4c553",
-      "status": "FINALIZED"
-    },
-    "finalizeAva": {
-      "hash": "0x51047937f6dce3f50ff68baf62a95e3cb0a64bde52b6a91e5d83d096f703eab6",
-      "status": "FINALIZED"
-    },
-    "claimA": {
-      "hash": "0x4587f6bf6a8f181964eaa8157b219f629ba820b9b011ddd82c7089259fd85503",
-      "status": "FINALIZED"
-    },
-    "followAva": {
-      "hash": "0xcea0c8273ca92a0bda64f97a856abf42471a6b54f4bfa609293ba87bd605a882",
-      "status": "FINALIZED"
-    },
-    "settleAva": {
-      "hash": "0x5161669a458c510bd3d36b2cb79f807a94654dddd79e45f9592363960e907c2b",
-      "status": "FINALIZED"
-    },
-    "registerBen": {
-      "hash": "0x21163b48dd328cf04fdfdfc6641e5c33f48eb1bd17cd1b085491c2144c34ae63",
-      "status": "FINALIZED"
-    },
-    "auditBen": {
-      "hash": "0xcc7bf444dac66463323dead72d9221a7e66d29f8e86c2006f11790d9fca0e104",
-      "status": "FINALIZED"
-    },
-    "challengeBen": {
-      "hash": "0x58830ccd7dd2a401cd3433d60ee3e22dd309ad9bb5dc26e48dc7765e6ade4e7f",
-      "status": "FINALIZED"
-    },
-    "finalizeBen": {
-      "hash": "0x9f247a340d58b21a2d9fbba4ed8c5dd6c26038b26042a0cd7cb2e11ed7a19cc9",
-      "status": "FINALIZED"
-    },
-    "followBen": {
-      "hash": "0x5c9af6dc996ab0584d130264a4b192ff68f65ccfec075255c926348a18837df3",
-      "status": "FINALIZED"
-    },
-    "registerCara": {
-      "hash": "0x55b0c5fbab26c036c718800b83acbd89a05354c3f9884d33e6675969576d1570",
-      "status": "FINALIZED"
-    },
-    "auditCara": {
-      "hash": "0xeaf28aba514aba34183f7d012a95e35a89aa9dc06fe4628eb2148596219a2332",
-      "status": "FINALIZED"
-    },
-    "finalizeCara": {
-      "hash": "0xbc66b7d599a44bfa6b5aa36b757f0793bd9e6ab6438716f9f33558909e7ea0df",
-      "status": "FINALIZED"
+    "fundedWeiPerAccount": "10000000000000000000000",
+    "txs": {
+      "registerAva": {
+        "hash": "0x87075048e4e03a8400c0cd7bcbf3bd199c86f8c27c0f6cc8b954084236833f69",
+        "status": "FINALIZED"
+      },
+      "auditAva": {
+        "hash": "0x6bf32256f2b7b5b59c5b1068f13cb29a0d87274d259c8eaaa3ebc35e9d2506c2",
+        "status": "FINALIZED"
+      },
+      "finalizeAva": {
+        "hash": "0x0d622ce07cf351281bc1db859f5acc8aba2d31c1a8da044ffe0ceed5fa0084ed",
+        "status": "FINALIZED"
+      },
+      "registerBen": {
+        "hash": "0x2b282aaf056fa3ad8afc9649acf5f01fbbcbd8a657a828514fb0f8231c14e52f",
+        "status": "FINALIZED"
+      },
+      "auditBen": {
+        "hash": "0xf9ac6af3cbcdd875863a4c843a06d7836b0ce1ad82d84132488e53fd2b3cdd9a",
+        "status": "FINALIZED"
+      },
+      "challengeBen": {
+        "hash": "0x00b3eceda5cb904eef4b6cdaadb6d214b2b18c35a44923dc1abd9fcdafc7c6b7",
+        "status": "FINALIZED"
+      },
+      "finalizeBen": {
+        "hash": "0xedceae93cf05b54b6dc58ef25eef39d6357f5c59b6f2f9d422220030299e95ea",
+        "status": "FINALIZED"
+      },
+      "registerDana": {
+        "hash": "0x5046dbf5b7ea12b7966d2c8a1aaa60a82e04fd275851ac03429cd5227b376202",
+        "status": "FINALIZED"
+      },
+      "auditDana": {
+        "hash": "0xca3ded4e17a609386d4bcc3eaadf6f8b0da57b8167a555409b60c5aa6a99c759",
+        "status": "FINALIZED"
+      },
+      "challengeDana": {
+        "hash": "0x7de7be84cd2ec52b1d2b89a08b174ff2ffd8d9475276f9633f1090b223b58fea",
+        "status": "FINALIZED"
+      },
+      "finalizeDana": {
+        "hash": "0x02aa99ddb2cb6568ef9368001f01ed7386d58344b05d84e15959858a6fb0b8bc",
+        "status": "FINALIZED"
+      }
     }
+  },
+  "phase2": {
+    "note": "Phase 2 ran scripts/flow-resume.mjs. It completed every business step except the three withdraws: its runner was killed when the VM wiped /tmp mid-run, and the phase-2 accounts' keys died with it. The settleBen retry hash was recovered from the explorer address page after the run log was lost with /tmp.",
+    "accounts": {
+      "D": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+      "E": "0x36a3F278df24c725d2623232D5C0d35D5254F754",
+      "F": "0xFBD3419E63b351AB2D5Fe0d180942f5c76ff7e73"
+    },
+    "fundedWeiPerAccount": "10000000000000000000000",
+    "txs": {
+      "reauditDana": {
+        "hash": "0x0f67693b8860ed831a0f2232eca4e4f387a38a71d110ce4d02893d1c044ff7ce",
+        "status": "FINALIZED"
+      },
+      "finalizeReauditDana": {
+        "hash": "0xe49bfe6fbb60234a1b4d6d7d09cecfc8ecc37d6e5e20d4047b08fc1ee0344a52",
+        "status": "FINALIZED"
+      },
+      "registerCara": {
+        "hash": "0x6243af4e61e5cd24638c38726b1b779b10cc4718d659b9d212cff86409326e3b",
+        "status": "FINALIZED"
+      },
+      "auditCara": {
+        "hash": "0x7aeca5b82a2dd1ec4dd72f1b0d1d0ab5987794abb99e54bb4d2afb66fd5099a0",
+        "status": "FINALIZED"
+      },
+      "finalizeCara": {
+        "hash": "0x894d052f48f7f56606b6a9e5cce723528a9893b3735ab8c7d596a035556d8f43",
+        "status": "FINALIZED"
+      },
+      "registerEli": {
+        "hash": "0x5d74f0f92399d0c9e70a132d83ba10f7251f848fb94b01b4d20c363b5523939b",
+        "status": "FINALIZED"
+      },
+      "auditEli": {
+        "hash": "0x52a8280e64ed9a7901dc722f0b87dedd301bde8433572119ec19b6cdc80d91eb",
+        "status": "FINALIZED"
+      },
+      "challengeEli": {
+        "hash": "0xcd2c38f0aa8897279f65cd87e66b5a9a068a020769e2f04837a4aa09e917a689",
+        "status": "FINALIZED"
+      },
+      "probeEli6": {
+        "hash": "0xd18af864ed9d87cb611c90e7667da811817978a31c2b0d13754100d30f3f0104",
+        "status": "FINALIZED"
+      },
+      "finalizeEli": {
+        "hash": "0x7fd0d5ce783297dffc1e714d106f3341d4ab982fdbedebd0f22d9a3cadff012e",
+        "status": "FINALIZED"
+      },
+      "finalizeProbeEli": {
+        "hash": "0x73ba868dee3ed3464046ec2156df783293599cbec4e8bd79c39f69d5b7139a90",
+        "status": "FINALIZED"
+      },
+      "copyAva": {
+        "hash": "0x0712c9c2b869a0f19d041639e9658edc66dbc798b24f037e95ae260bd233c0d2",
+        "status": "FINALIZED"
+      },
+      "copyBenD": {
+        "hash": "0x2c0ae3f816d17d9c998181a87818b0fa0774ea7142fc9c42c6c7814100a09924",
+        "status": "FINALIZED"
+      },
+      "copyBenF": {
+        "hash": "0xfc27c992a852572a3d3bd519d2c97e2ebbddd80180cabf7a7ea082b0d629e4aa",
+        "status": "FINALIZED"
+      },
+      "negativeCopyRejected": {
+        "attempted": true,
+        "outcome": "tx submitted, receipt status FINALIZED, GenVM result ERROR (explorer)",
+        "hash": "0xea00f2d2007ff50c00b0cfea004a1e909ec8a0777561cd98a01f49f89aaaf0e6",
+        "error": null
+      },
+      "cancelBenF": {
+        "hash": "0x7c467e5a2774f8f539ebc1fabc4c8931dc0d659c638a9660914cd783c8e09456",
+        "status": "FINALIZED"
+      },
+      "negativeSettleCancelled": {
+        "attempted": true,
+        "outcome": "tx submitted, receipt status FINALIZED, GenVM result ERROR (explorer)",
+        "hash": "0x7f252e73d8e4b88fc092d008e70f0248e70b4a95b4dfb2b124ea4ed5e642ab31",
+        "error": null
+      },
+      "settleAva": {
+        "hash": "0x81f0f60d2f58d602061c20081c855dfb00b286d50882d029d1599c010623dc55",
+        "status": "FINALIZED"
+      },
+      "settleBenAttempt1": {
+        "hash": "0xa1dde09f0839c1b2341d10cc8c1a57b1ba5527298baa202c318ce90ffb08c11b",
+        "status": "FINALIZED",
+        "note": "GenVM result ERROR (price bucket crossed mid-consensus); no state changed; retried"
+      },
+      "settleBen": {
+        "hash": "0xb700a8c70484038e7acfb2c9aa75ca4af886f09947b12ddf15880b647f57bd2b",
+        "status": "FINALIZED"
+      }
+    },
+    "withdrawsNotRun": "Runner killed when /tmp was wiped; D/E/F keys lost with it. Credits D 10 GEN, E 2.75 GEN, F 5 GEN remain outstanding (still withdrawable by the key holders)."
+  },
+  "phase3": {
+    "account": {
+      "G": "0x28d4b665dBF3DB5a8533838f4F3A10769aD5F86b"
+    },
+    "funded": {
+      "fundTx": "0x29bacf840c01f9c60507875e7b9d14599f298674c88495afdadf9af95a8e3c81",
+      "balanceWei": "10000000000000000000000"
+    },
+    "txs": {
+      "copyAvaG": {
+        "hash": "0x145313d3f73cfb5ae7fe70ddba379baba61cec1f84abafbc92db08c866d14f1e",
+        "status": "FINALIZED"
+      },
+      "settleAvaG": {
+        "hash": "0xaba0b6eb0d647fdaf612243b492730e4e3c82c1955ccaf23e63943fe97b0d7e5",
+        "status": "FINALIZED"
+      },
+      "withdrawG": {
+        "hash": "0x6c4138c695df99282f9c70e51d7c5981990c1bc54c24d100ef09b42ccc8c5f73",
+        "status": "FINALIZED"
+      }
+    },
+    "leftoverPhase2": {
+      "eoaWei": {
+        "D": "9985000000000000000000",
+        "E": "9998000000000000000000",
+        "F": "9995000000000000000000",
+        "phase1B": "9996000000000000000000"
+      },
+      "creditsWei": {
+        "D": "10000000000000000000",
+        "E": "2750000000000000000",
+        "F": "5000000000000000000"
+      }
+    },
+    "leakWei": "5000000000000000000",
+    "leakNote": "The 5 GEN attached to the failed payable copy_trader call (negative case 1, tx 0xea00f2d2...) sits in the contract balance with no credit and no counter entry: contract_balance = total_received - total_paid_out + 5 GEN leaked. D's EOA confirms the 5 GEN left D's account. The counter invariant total_received == total_paid_out + locked + credits + pool still holds exactly."
   },
   "readBack": {
     "counts": {
-      "traders": 3,
-      "audits": 3,
-      "copies": 2,
-      "witnesses": 0
+      "traders": 5,
+      "audits": 7,
+      "copies": 4,
+      "witnesses": 1
     },
     "traders": [
       {
@@ -77,14 +222,15 @@
         "name": "Ava Chen",
         "trader_code": "AVA-001",
         "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ava.json",
-        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "registrar": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
         "status": "AUDITED_VERIFIED",
         "verdict": "VERIFIED",
         "weight": 100,
-        "reputation": 111,
-        "followers": 1,
-        "total_copied": 1000,
-        "settled_copies": 1,
+        "reputation": 10,
+        "followers": 2,
+        "open_copies": 0,
+        "total_copied_wei": 10000000000000000000,
+        "settled_copies": 2,
         "witness_count": 0
       },
       {
@@ -92,28 +238,62 @@
         "name": "Ben Okafor",
         "trader_code": "BEN-002",
         "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
-        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "registrar": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
         "status": "AUDITED_SUSPECT",
         "verdict": "SUSPECT",
         "weight": 50,
-        "reputation": 100,
-        "followers": 1,
-        "total_copied": 500,
-        "settled_copies": 0,
+        "reputation": 0,
+        "followers": 2,
+        "open_copies": 0,
+        "total_copied_wei": 5000000000000000000,
+        "settled_copies": 1,
         "witness_count": 0
       },
       {
         "id": "t2",
+        "name": "Dana Kim",
+        "trader_code": "DAN-004",
+        "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-dana.json",
+        "registrar": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
+        "status": "AUDITED_SUSPECT",
+        "verdict": "SUSPECT",
+        "weight": 50,
+        "reputation": 0,
+        "followers": 0,
+        "open_copies": 0,
+        "total_copied_wei": 0,
+        "settled_copies": 0,
+        "witness_count": 1
+      },
+      {
+        "id": "t3",
         "name": "Cara Diaz",
         "trader_code": "CAR-003",
         "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-cara.json",
-        "registrar": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "registrar": "0xc94d13716d0609566519cB78cf4298f0C3849218",
         "status": "AUDITED_REJECTED",
         "verdict": "REJECTED",
         "weight": 0,
-        "reputation": 90,
+        "reputation": 0,
         "followers": 0,
-        "total_copied": 0,
+        "open_copies": 0,
+        "total_copied_wei": 0,
+        "settled_copies": 0,
+        "witness_count": 0
+      },
+      {
+        "id": "t4",
+        "name": "Eli Park",
+        "trader_code": "ELI-005",
+        "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-eli.json",
+        "registrar": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+        "status": "AUDITED_VERIFIED",
+        "verdict": "VERIFIED",
+        "weight": 100,
+        "reputation": 10,
+        "followers": 0,
+        "open_copies": 0,
+        "total_copied_wei": 0,
         "settled_copies": 0,
         "witness_count": 0
       }
@@ -122,8 +302,8 @@
       {
         "id": "a0",
         "trader_id": "t0",
-        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
-        "status": "FINALIZED",
+        "requester": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
+        "status": "CLOSED",
         "round1": {
           "audit_date": "2026-11-09",
           "check_dates_consistent": true,
@@ -132,23 +312,22 @@
           "check_numbers_consistent": true,
           "check_source_valid": true,
           "evidence_end_date": "2026-11-08",
-          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ava.json",
           "total_return_bps": 1390,
           "trade_count": 10,
-          "trader_code": "AVA-001",
           "verdict": "VERIFIED",
           "wins": 7
         },
         "round2": null,
         "challenger": null,
         "challenge_reason": null,
-        "challenge_outcome": null
+        "challenge_outcome": null,
+        "challenge_stake_wei": 0
       },
       {
         "id": "a1",
         "trader_id": "t1",
-        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
-        "status": "FINALIZED",
+        "requester": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
+        "status": "CLOSED",
         "round1": {
           "audit_date": "2026-11-09",
           "check_dates_consistent": true,
@@ -157,10 +336,8 @@
           "check_numbers_consistent": true,
           "check_source_valid": true,
           "evidence_end_date": "2026-08-10",
-          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
           "total_return_bps": 860,
           "trade_count": 8,
-          "trader_code": "BEN-002",
           "verdict": "SUSPECT",
           "wins": 5
         },
@@ -172,22 +349,81 @@
           "check_numbers_consistent": true,
           "check_source_valid": true,
           "evidence_end_date": "2026-08-10",
-          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-ben.json",
           "total_return_bps": 860,
           "trade_count": 8,
-          "trader_code": "BEN-002",
           "verdict": "SUSPECT",
           "wins": 5
         },
-        "challenger": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
+        "challenger": "0x550eA0f1b60a9449e4F0A15De90542F43b8DC084",
         "challenge_reason": "Record is stale: last trade 2026-08-10, over 90 days old.",
-        "challenge_outcome": "CHALLENGE_FAILED"
+        "challenge_outcome": "CHALLENGE_FAILED",
+        "challenge_stake_wei": 2000000000000000000
       },
       {
         "id": "a2",
         "trader_id": "t2",
-        "requester": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
-        "status": "FINALIZED",
+        "requester": "0x1Ca0137b9e33Aa9435eB057ef62053eB7D7f8364",
+        "status": "CLOSED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": false,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 300,
+          "trade_count": 6,
+          "verdict": "SUSPECT",
+          "wins": 3
+        },
+        "round2": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": false,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 300,
+          "trade_count": 6,
+          "verdict": "SUSPECT",
+          "wins": 3
+        },
+        "challenger": "0x550eA0f1b60a9449e4F0A15De90542F43b8DC084",
+        "challenge_reason": "Claimed total return 999 bps does not recompute from the trades.",
+        "challenge_outcome": "CHALLENGE_FAILED",
+        "challenge_stake_wei": 2000000000000000000
+      },
+      {
+        "id": "a3",
+        "trader_id": "t2",
+        "requester": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+        "status": "CLOSED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 300,
+          "trade_count": 6,
+          "verdict": "VERIFIED",
+          "wins": 3
+        },
+        "round2": null,
+        "challenger": null,
+        "challenge_reason": null,
+        "challenge_outcome": null,
+        "challenge_stake_wei": 0
+      },
+      {
+        "id": "a4",
+        "trader_id": "t3",
+        "requester": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+        "status": "CLOSED",
         "round1": {
           "audit_date": "2026-11-09",
           "check_dates_consistent": true,
@@ -196,58 +432,173 @@
           "check_numbers_consistent": true,
           "check_source_valid": true,
           "evidence_end_date": "2026-11-08",
-          "evidence_ref": "https://raw.githubusercontent.com/xiaoyu7799/copytrade-social-genlayer/main/evidence/trader-cara.json",
           "total_return_bps": 300,
           "trade_count": 6,
-          "trader_code": "CAR-003",
           "verdict": "REJECTED",
           "wins": 3
         },
         "round2": null,
         "challenger": null,
         "challenge_reason": null,
-        "challenge_outcome": null
+        "challenge_outcome": null,
+        "challenge_stake_wei": 0
+      },
+      {
+        "id": "a5",
+        "trader_id": "t4",
+        "requester": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+        "status": "CLOSED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": false,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 500,
+          "trade_count": 5,
+          "verdict": "SUSPECT",
+          "wins": 3
+        },
+        "round2": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 500,
+          "trade_count": 5,
+          "verdict": "VERIFIED",
+          "wins": 3
+        },
+        "challenger": "0x36a3F278df24c725d2623232D5C0d35D5254F754",
+        "challenge_reason": "Claimed total return 999 bps does not recompute from the trades.",
+        "challenge_outcome": "CHALLENGE_SUCCEEDED",
+        "challenge_stake_wei": 2000000000000000000
+      },
+      {
+        "id": "a6",
+        "trader_id": "t4",
+        "requester": "0xc94d13716d0609566519cB78cf4298f0C3849218",
+        "status": "CLOSED",
+        "round1": {
+          "audit_date": "2026-11-09",
+          "check_dates_consistent": true,
+          "check_evidence_fresh": true,
+          "check_identity_matches": true,
+          "check_numbers_consistent": true,
+          "check_source_valid": true,
+          "evidence_end_date": "2026-11-08",
+          "total_return_bps": 500,
+          "trade_count": 5,
+          "verdict": "VERIFIED",
+          "wins": 3
+        },
+        "round2": null,
+        "challenger": null,
+        "challenge_reason": null,
+        "challenge_outcome": null,
+        "challenge_stake_wei": 0
       }
     ],
     "copies": [
       {
         "id": "c0",
-        "follower": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "follower": "0xc94d13716d0609566519cB78cf4298f0C3849218",
         "trader_id": "t0",
-        "allocation": 1000,
+        "stake_wei": 5000000000000000000,
         "weight": 100,
-        "effective": 1000,
+        "effective_wei": 5000000000000000000,
+        "entry_bucket_usd": 74000,
         "status": "SETTLED",
-        "pnl_bps": 500,
-        "pnl": 50,
-        "settled_value": 1050
+        "exit_bucket_usd": 74000,
+        "pnl_bps": 0,
+        "pnl_wei": 0,
+        "return_wei": 5000000000000000000,
+        "capped": false
       },
       {
         "id": "c1",
-        "follower": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
+        "follower": "0xc94d13716d0609566519cB78cf4298f0C3849218",
         "trader_id": "t1",
-        "allocation": 1000,
+        "stake_wei": 5000000000000000000,
         "weight": 50,
-        "effective": 500,
-        "status": "OPEN",
+        "effective_wei": 2500000000000000000,
+        "entry_bucket_usd": 74000,
+        "status": "SETTLED",
+        "exit_bucket_usd": 74000,
+        "pnl_bps": 0,
+        "pnl_wei": 0,
+        "return_wei": 5000000000000000000,
+        "capped": false
+      },
+      {
+        "id": "c2",
+        "follower": "0xFBD3419E63b351AB2D5Fe0d180942f5c76ff7e73",
+        "trader_id": "t1",
+        "stake_wei": 5000000000000000000,
+        "weight": 50,
+        "effective_wei": 2500000000000000000,
+        "entry_bucket_usd": 74000,
+        "status": "CANCELLED",
+        "exit_bucket_usd": null,
         "pnl_bps": null,
-        "pnl": null,
-        "settled_value": null
+        "pnl_wei": null,
+        "return_wei": 5000000000000000000,
+        "capped": null
+      },
+      {
+        "id": "c3",
+        "follower": "0x28d4b665dBF3DB5a8533838f4F3A10769aD5F86b",
+        "trader_id": "t0",
+        "stake_wei": 5000000000000000000,
+        "weight": 100,
+        "effective_wei": 5000000000000000000,
+        "entry_bucket_usd": 74000,
+        "status": "SETTLED",
+        "exit_bucket_usd": 74000,
+        "pnl_bps": 0,
+        "pnl_wei": 0,
+        "return_wei": 5000000000000000000,
+        "capped": false
       }
     ],
-    "witnesses": [],
-    "accountA": {
-      "address": "0x48Bc7D00C7D455279fc55b4DB0Ca87e0fF992F20",
-      "balance": 9050,
-      "claimed_demo": true,
-      "reputation": 100
+    "witnesses": [
+      {
+        "id": "w0",
+        "trader_id": "t2",
+        "standing_verdict": "SUSPECT",
+        "new_verdict": "VERIFIED"
+      }
+    ],
+    "finalTotals": {
+      "total_received_wei": 26000000000000000000,
+      "total_paid_out_wei": 5000000000000000000,
+      "contract_balance_wei": 26000000000000000000,
+      "locked_copies_wei": 0,
+      "locked_challenges_wei": 0,
+      "credits_total_wei": 17750000000000000000,
+      "house_pool_wei": 3250000000000000000,
+      "accounted_wei": 26000000000000000000,
+      "invariant_ok": true,
+      "balance_matches_wei": false
     },
-    "accountB": {
-      "address": "0x0F18AACa398Ab5120C883b8f12d2e7B848712ad3",
-      "balance": 0,
-      "claimed_demo": false,
-      "reputation": 95
+    "finalCredits": {
+      "D": "10000000000000000000",
+      "E": "2750000000000000000",
+      "F": "5000000000000000000",
+      "G": "0"
     }
   },
-  "checkedAt": "2026-11-09T07:57:25.357Z"
+  "reconciliation": {
+    "fundedWeiPerAccount": "10000000000000000000000",
+    "phase3EoaBeforeWithdrawWei": "9995000000000000000000",
+    "phase3CreditBeforeWithdrawWei": "5000000000000000000",
+    "phase3EoaAfterWithdrawWei": "10000000000000000000000",
+    "note": "Phase-1 B paid 4 GEN in failed challenge stakes (forfeited to the pool). Phase-2 D paid 10 GEN in copy stakes + 5 GEN leaked by the failed payable copy call; D's credits (10 GEN) were never withdrawn (keys lost). Phase-2 E paid 2 GEN in a challenge stake and was credited 2.75 GEN (never withdrawn). Phase-2 F paid 5 GEN in a copy stake and was credited 5 GEN (never withdrawn). Phase-3 G paid 5 GEN in a copy stake, settled, and withdrew its full credit; G's EOA reconciles exactly (before + credit = after). Contract balance at the end = 17.75 GEN stranded credits + house pool + 5 GEN leaked from the failed payable call."
+  },
+  "checkedAt": "2026-11-09T11:12:35.520Z"
 }

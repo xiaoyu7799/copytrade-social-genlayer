@@ -118,6 +118,13 @@ total_received == total_paid_out + locked_copies
 and `contract balance == total_received - total_paid_out`.
 `get_totals` returns all six counters plus `invariant_ok` and
 `balance_matches_wei`, computed on-chain from the same state.
+One exception, measured on Studionet: value attached to a payable
+call that fails validation still lands in the contract balance
+without creating a credit or a counter entry (observed: a rejected
+`copy_trader` call moved 5 GEN into the balance; see
+`docs/live-verification.md`). The counter invariant above still
+holds exactly; the balance identity holds up to that leaked value,
+which `get_totals` reports through `balance_matches_wei`.
 The invariant is what makes the house pool honest: the pool is
 capitalised only by forfeited challenge stakes (2 GEN each) and
 by stakes retained from losing settlements. It never mints GEN,

@@ -1,5 +1,15 @@
 /* End-to-end on-chain flow against an already-deployed CopyTrade contract.
  *
+ * NOTE (2026-11-09): this script ran as phase 1 and STOPPED at the Dana
+ * close — the evidence file was corrected 999 -> 300 and curl saw 300,
+ * but every validator still fetched the stale 999 (evidence CDN cache),
+ * so round2 closed SUSPECT and the challenge failed. The run then
+ * continued in scripts/flow-resume.mjs (fresh accounts D/E/F, Dana
+ * re-audit for the witness path, Eli as the challenge-success case
+ * with an 11-minute cache wait plus a probe audit). Do not re-run this
+ * file against the live contract expecting the same IDs; the resume
+ * script is the record of what actually happened.
+ *
  * Usage:
  *   CONTRACT_ADDRESS=0x... node scripts/flow.mjs
  *

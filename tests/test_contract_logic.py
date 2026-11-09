@@ -181,7 +181,15 @@ check("ben evidence -> SUSPECT (stale only)", v == "SUSPECT" and checks["evidenc
 v, checks, _, _ = verdict_for_file("trader-cara.json", "CAR-003", "Cara Diaz")
 check("cara evidence -> REJECTED (identity)", v == "REJECTED" and checks["identity_matches"] is False)
 v, checks, _, _ = verdict_for_file("trader-dana.json", "DAN-004", "Dana Kim")
-check("dana v1 evidence -> SUSPECT (numbers)", v == "SUSPECT" and checks["numbers_consistent"] is False)
+check("dana file now corrected -> VERIFIED (claimed total 300)", v == "VERIFIED" and checks["numbers_consistent"] is True)
+# Dana v1 (as audited in round1): claimed total 999 against trades summing to 300.
+dana_v1 = json.loads((ROOT / "evidence" / "trader-dana.json").read_text())
+dana_v1["claimed_total_return_bps"] = 999
+trades = dana_v1["trades"]
+wins_v1 = sum(1 for t in trades if t["pnl_bps"] > 0)
+total_v1 = sum(t["pnl_bps"] for t in trades)
+check("dana v1 numbers do not recompute (999 vs 300)", total_v1 == 300 and total_v1 != dana_v1["claimed_total_return_bps"])
+check("dana v1 verdict table gives SUSPECT", mod._derive_verdict({"source_valid": True, "identity_matches": True, "dates_consistent": True, "numbers_consistent": False, "evidence_fresh": True}) == "SUSPECT")
 
 # --- trunc division ---------------------------------------------------------
 check("trunc_div positive exact", mod._trunc_div(15000, 10000) == 1)
